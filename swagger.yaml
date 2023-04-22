@@ -1,0 +1,58 @@
+openapi: 3.0.3
+info:
+  title: Agartex Resource Management Service
+  description: |-
+    This is a server for making requests to the postgres database instance
+  version: 0.0.1
+servers:
+  - url: http://localhost:3200
+tags:
+  - name: user
+    description: Operations about user
+paths:
+  /users:
+    post:
+      tags:
+        - user
+      summary: Register user
+      description: This will register a new user with the given email and password.
+      operationId: createUser
+      requestBody:
+        description: Created user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        201:
+          description: Successfully created user
+        400:
+          description: Malformed request
+        409:
+          description: Duplicate email
+        415:
+          description: Unsupported media type
+        422:
+          description: Request body validation errors (e.g. incorrect email format, weak password)
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  schemas:
+    Credentials:
+      type: object
+      properties:
+        email:
+          type: string
+          example: email@email.com
+        password:
+          type: string
+          example: Password1@
+
+  securitySchemes:
+    session_id:
+      type: apiKey
+      in: cookie
+      name: RSESSID
