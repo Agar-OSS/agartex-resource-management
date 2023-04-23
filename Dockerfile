@@ -9,6 +9,15 @@ RUN cargo build --release
 
 COPY . .
 RUN cargo build --release
+FROM debian:10.13-slim
 
-EXPOSE 3200
-ENTRYPOINT [ "/app/src/target/release/agartex-resource-management" ]
+WORKDIR /app
+RUN chmod 777 .
+
+RUN useradd user
+USER user
+
+COPY --from=builder /app/src/target/release/agartex-resource-management .
+
+EXPOSE 3100
+ENTRYPOINT [ "./agartex-resource-management" ]
