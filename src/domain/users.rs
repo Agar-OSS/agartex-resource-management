@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use validator::{Validate, ValidationError};
 
-use crate::constants;
+use crate::constants::{PASSWORD_REGEX, PASSWORD_SPECIAL_CHARS};
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
 pub struct User {
@@ -17,7 +17,7 @@ pub struct Credentials {
     pub email: String,
     #[validate(
         length(min = 8, max = 32), 
-        regex = "constants::PASSWORD_REGEX", 
+        regex = "PASSWORD_REGEX", 
         custom = "contains_uppercase",
         custom = "contains_lowercase",
         custom = "contains_digit",
@@ -48,7 +48,7 @@ fn contains_digit(password: &str) -> Result<(), ValidationError> {
 }
 
 fn contains_special(password: &str) -> Result<(), ValidationError> {
-    if !password.chars().any(|c| constants::PASSWORD_SPECIAL_CHARS.contains(c)) {
+    if !password.chars().any(|c| PASSWORD_SPECIAL_CHARS.contains(c)) {
         return Err(ValidationError::new("special_character"))
     }
     Ok(())

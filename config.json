@@ -1,4 +1,0 @@
-{
-    "server_addr": "0.0.0.0:3200",
-    "database_addr": "postgres://localhost:5432/agartex-db"
-}

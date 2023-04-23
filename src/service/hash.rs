@@ -1,7 +1,7 @@
 use anyhow::{Result, Error};
 use mockall::automock;
 
-use crate::constants;
+use crate::constants::HASH_COST;
 
 #[automock]
 pub trait HashService {
@@ -17,7 +17,7 @@ pub struct BcryptHashService {
 impl BcryptHashService {
     pub fn new() -> Self {
         Self {
-            hash_cost: constants::HASH_COST
+            hash_cost: *HASH_COST
         }
     }
 }
