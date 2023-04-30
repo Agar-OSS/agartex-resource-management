@@ -1,18 +1,18 @@
 use std::fmt::Debug;
 
-use axum::Extension;
+use axum::{Extension, Json};
 use http::StatusCode;
 use tracing::info;
 
-use crate::{domain::users::Credentials, service::users::{UserService, UserCreationError}, validation::ValidatedJson};
+use crate::{domain::users::UserData, repository::users::{UserRepository, UserInsertError}};
 
-#[tracing::instrument(skip_all, fields(email = credentials.email))]
-pub async fn post_users<T: UserService + Debug>(Extension(service): Extension<T>, ValidatedJson(credentials): ValidatedJson<Credentials>) -> Result<StatusCode, StatusCode> {
-    info!("Received registration attempt");
-    match service.register(credentials).await {
+#[tracing::instrument(skip(repository))]
+pub async fn post_users<T: UserRepository + Debug>(Extension(repository): Extension<T>, Json(data): Json<UserData>) -> Result<StatusCode, StatusCode> {
+    info!("Received user creation attempt");
+    match repository.insert(data).await {
         Ok(()) => Ok(StatusCode::CREATED),
-        Err(UserCreationError::DuplicateEmail) => Err(StatusCode::CONFLICT),
-        Err(UserCreationError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR)
+        Err(UserInsertError::Duplicate) => Err(StatusCode::CONFLICT),
+        Err(UserInsertError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
 

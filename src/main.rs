@@ -6,8 +6,6 @@ mod database;
 mod domain;
 mod repository;
 mod routing;
-mod service;
-mod validation;
 
 use constants::SERVER_URL;
 
