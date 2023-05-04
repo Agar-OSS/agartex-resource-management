@@ -24,17 +24,17 @@ paths:
       - user
       description: Returns email and password hash
       responses:
-        "200":
+        200:
           description: Data of the user
           content:
             application/json:
               schema: 
                 $ref: '#/components/schemas/User'
-        "400":
+        400:
           description: Malformed request
-        "404":
+        404:
           description: User with given email not found
-        "415":
+        415:
           description: Wrong content type (should be JSON)
   
   /users:
@@ -49,13 +49,13 @@ paths:
               $ref: '#/components/schemas/UserData'
       description: Creates a new user using the provided database
       responses:
-        "201":
+        201:
           description: User created successfully
-        "400":
+        400:
           description: Malformed request
-        "409":
+        409:
           description: Could not create user due to conflicts
-        "415":
+        415:
           description: Wrong content type (should be JSON)
 
 components:
