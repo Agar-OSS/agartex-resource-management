@@ -1,20 +1,31 @@
 use std::fmt::Debug;
 
-use axum::Extension;
+use axum::{Extension, Json, extract::Path};
 use http::StatusCode;
 use tracing::info;
 
-use crate::{domain::users::Credentials, service::users::{UserService, UserCreationError}, validation::ValidatedJson};
+use crate::{domain::users::{UserData, User}, repository::users::{UserRepository, UserInsertError, UserGetError}};
 
-#[tracing::instrument(skip_all, fields(email = credentials.email))]
-pub async fn post_users<T: UserService + Debug>(Extension(service): Extension<T>, ValidatedJson(credentials): ValidatedJson<Credentials>) -> Result<StatusCode, StatusCode> {
-    info!("Received registration attempt");
-    match service.register(credentials).await {
+#[tracing::instrument(skip(repository))]
+pub async fn post_users<T: UserRepository + Debug>(Extension(repository): Extension<T>, Json(data): Json<UserData>) -> Result<StatusCode, StatusCode> {
+    info!("Received user creation attempt");
+    match repository.insert(data).await {
         Ok(()) => Ok(StatusCode::CREATED),
-        Err(UserCreationError::DuplicateEmail) => Err(StatusCode::CONFLICT),
-        Err(UserCreationError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR)
+        Err(UserInsertError::Duplicate) => Err(StatusCode::CONFLICT),
+        Err(UserInsertError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
+
+#[tracing::instrument(skip(repository))]
+pub async fn get_users<T: UserRepository + Debug>(Extension(repository): Extension<T>, Path(user_email): Path<String>) -> Result<Json<User>, StatusCode> {
+    info!("Received attempt to get user");
+    match repository.get_by_email(&user_email).await {
+        Ok(user) => Ok(Json(user)),
+        Err(UserGetError::Missing) => Err(StatusCode::NOT_FOUND),
+        Err(UserGetError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR)
+    }
+}
+
 
 #[cfg(test)]
 mod tests;

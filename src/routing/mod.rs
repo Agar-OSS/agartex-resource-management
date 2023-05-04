@@ -1,14 +1,15 @@
-use axum::{Router, Extension};
+mod users;
+
+use axum::Router;
 use sqlx::PgPool;
 
-use crate::{service::{users::HashUserService, hash::BcryptHashService}, control::users::post_users, repository::users::PgUserRepository};
+use crate::{repository::users::PgUserRepository};
+
+use self::users::users_router;
 
 pub fn main_router(pool: &PgPool) -> Router {
-    let users_service = HashUserService::new(PgUserRepository::new(pool), BcryptHashService::new());
-
-    let users_handler = axum::routing::post(post_users::<HashUserService<PgUserRepository, BcryptHashService>>);
+    let users_repository = PgUserRepository::new(pool);
 
     Router::new()
-        .route("/users", users_handler)
-        .layer(Extension(users_service))
+        .nest("/users", users_router(users_repository))
 }

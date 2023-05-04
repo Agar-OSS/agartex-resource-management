@@ -3,7 +3,7 @@ use mockall::automock;
 use sqlx::PgPool;
 use tracing::error;
 
-use crate::domain::users::{User, Credentials};
+use crate::domain::users::{User, UserData};
 
 pub enum UserGetError {
     Missing,
@@ -19,7 +19,7 @@ pub enum UserInsertError {
 #[async_trait]
 pub trait UserRepository {
     async fn get_by_email(&self, email: &str) -> Result<User, UserGetError>;
-    async fn insert(&self, credentials: Credentials) -> Result<(), UserInsertError>;
+    async fn insert(&self, user_data: UserData) -> Result<(), UserInsertError>;
 }
 
 #[derive(Debug, Clone)]
@@ -52,15 +52,15 @@ impl UserRepository for PgUserRepository {
         }
     }
 
-    #[tracing::instrument(skip_all, fields(email = credentials.email))]
-    async fn insert(&self, credentials: Credentials) -> Result<(), UserInsertError> {
+    #[tracing::instrument(skip_all)]
+    async fn insert(&self, user_data: UserData) -> Result<(), UserInsertError> {
         let result = sqlx::query(
             "INSERT INTO users (email, password_hash) 
             VALUES ($1, $2)
             ON CONFLICT DO NOTHING
         ")
-            .bind(&credentials.email)
-            .bind(&credentials.password)
+            .bind(&user_data.email)
+            .bind(&user_data.password_hash)
             .execute(&self.pool)
             .await;
 

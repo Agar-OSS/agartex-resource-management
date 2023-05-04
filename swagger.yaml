@@ -10,49 +10,75 @@ tags:
   - name: user
     description: Operations about user
 paths:
+  /users/{userEmail}:
+    parameters:
+      - in: path
+        name: userEmail
+        schema:
+          type: string
+        required: true
+        description: Email of the user to be gotten
+    get:
+      summary: Get data about user
+      tags:
+      - user
+      description: Returns data of the given user
+      responses:
+        200:
+          description: Data of the user
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/User'
+        400:
+          description: Malformed request
+        404:
+          description: User with given email not found
+        415:
+          description: Wrong content type (should be JSON)
+  
   /users:
     post:
-      tags:
+      tags: 
         - user
-      summary: Register user
-      description: This will register a new user with the given email and password.
-      operationId: createUser
+      summary: Create a new user
       requestBody:
-        description: Created user object
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Credentials'
+              $ref: '#/components/schemas/UserData'
+      description: Creates a new user using the provided database
       responses:
         201:
-          description: Successfully created user
+          description: User created successfully
         400:
           description: Malformed request
         409:
-          description: Duplicate email
+          description: Could not create user due to conflicts
         415:
-          description: Unsupported media type
-        422:
-          description: Request body validation errors (e.g. incorrect email format, weak password)
-          content:
-            text/plain:
-              schema:
-                type: string
+          description: Wrong content type (should be JSON)
 
 components:
   schemas:
-    Credentials:
+    UserData:
       type: object
       properties:
         email:
           type: string
-          example: email@email.com
-        password:
+          example: john@email.com
+        password_hash:
           type: string
-          example: Password1@
-
-  securitySchemes:
-    session_id:
-      type: apiKey
-      in: cookie
-      name: RSESSID
+          example: idk_even
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        email:
+          type: string
+          example: john@email.com
+        password_hash:
+          type: string
+          example: idk_even
