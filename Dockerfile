@@ -23,5 +23,5 @@ USER user
 
 COPY --from=builder /app/src/target/release/agartex-resource-management .
 
-EXPOSE 3100
+EXPOSE 3200
 ENTRYPOINT [ "./agartex-resource-management" ]
