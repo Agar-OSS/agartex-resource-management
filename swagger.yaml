@@ -22,7 +22,7 @@ paths:
       summary: Get data about user
       tags:
       - user
-      description: Returns email and password hash
+      description: Returns data of the given user
       responses:
         200:
           description: Data of the user
