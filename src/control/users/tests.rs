@@ -39,7 +39,7 @@ async fn post_users_normal() {
         .times(1)
         .returning(|_| Ok(()));
 
-    assert_eq!(Ok(StatusCode::CREATED), post_users(Extension(user_repository), Json(mock_user_data())).await)
+    assert_eq!(StatusCode::CREATED, post_users(Extension(user_repository), Json(mock_user_data())).await)
 }
 
 #[tokio::test]
@@ -52,7 +52,7 @@ async fn post_users_duplicate_error() {
         .times(1)
         .returning(|_| Err(UserInsertError::Duplicate));
 
-    assert_eq!(Err(StatusCode::CONFLICT), post_users(Extension(user_repository), Json(mock_user_data())).await)
+    assert_eq!(StatusCode::CONFLICT, post_users(Extension(user_repository), Json(mock_user_data())).await)
 }
 
 #[tokio::test]
@@ -65,7 +65,7 @@ async fn post_users_service_unknown_error() {
         .times(1)
         .returning(|_| Err(UserInsertError::Unknown));
 
-    assert_eq!(Err(StatusCode::INTERNAL_SERVER_ERROR), post_users(Extension(user_repository), Json(mock_user_data())).await)
+    assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, post_users(Extension(user_repository), Json(mock_user_data())).await)
 }
 
 #[tokio::test]

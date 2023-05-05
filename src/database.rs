@@ -12,7 +12,6 @@ pub async fn create_conn_pool() -> Result<PgPool, Error> {
         Ok(pool) => pool,
         Err(_) => PgPool::connect(FALLBACK_DB_URL).await?
     };
-    // Uncomment this once there are migrations
-    // sqlx::migrate!().run(&pool).await?;
+    sqlx::migrate!().run(&pool).await?;
     Ok(pool)
 }

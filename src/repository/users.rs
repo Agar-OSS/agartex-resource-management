@@ -52,7 +52,7 @@ impl UserRepository for PgUserRepository {
         }
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(skip_all, fields(email = user_data.email))]
     async fn insert(&self, user_data: UserData) -> Result<(), UserInsertError> {
         let result = sqlx::query(
             "INSERT INTO users (email, password_hash) 

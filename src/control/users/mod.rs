@@ -6,13 +6,13 @@ use tracing::info;
 
 use crate::{domain::users::{UserData, User}, repository::users::{UserRepository, UserInsertError, UserGetError}};
 
-#[tracing::instrument(skip(repository))]
-pub async fn post_users<T: UserRepository + Debug>(Extension(repository): Extension<T>, Json(data): Json<UserData>) -> Result<StatusCode, StatusCode> {
+#[tracing::instrument(skip_all, fields(email = data.email))]
+pub async fn post_users<T: UserRepository + Debug>(Extension(repository): Extension<T>, Json(data): Json<UserData>) -> StatusCode {
     info!("Received user creation attempt");
     match repository.insert(data).await {
-        Ok(()) => Ok(StatusCode::CREATED),
-        Err(UserInsertError::Duplicate) => Err(StatusCode::CONFLICT),
-        Err(UserInsertError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR)
+        Ok(()) => StatusCode::CREATED,
+        Err(UserInsertError::Duplicate) => StatusCode::CONFLICT,
+        Err(UserInsertError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR
     }
 }
 
