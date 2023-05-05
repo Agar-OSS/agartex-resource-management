@@ -1,4 +1,4 @@
-use axum::Extension;
+use axum::{Extension, headers::Authorization};
 use http::StatusCode;
 use mockall::predicate;
 use sqlx::types::chrono::Utc;
@@ -15,6 +15,10 @@ fn mock_password() -> String {
     String::from("password")
 }
 
+fn mock_header() -> TypedHeader<Authorization<Bearer>> {
+    TypedHeader(Authorization::bearer(mock_session_id().as_str()).unwrap())
+}
+
 fn mock_user() -> User {
     User {
         id: 1, 
@@ -24,7 +28,7 @@ fn mock_user() -> User {
 }
 
 fn mock_session_id() -> String {
-    String::from_iter(std::iter::repeat('1').take(256))
+    String::from_iter(std::iter::repeat('1').take(64))
 }
 
 fn mock_session_data() -> SessionData {
@@ -101,7 +105,7 @@ async fn get_sessions_normal() {
         .times(1)
         .return_once(|_| Ok(session_cpy));
 
-    let res = get_sessions(Extension(session_repository), Path(session_id)).await;
+    let res = get_sessions(Extension(session_repository), mock_header()).await;
 
     assert!(res.is_ok());
     assert_eq!(session, res.unwrap().0)
@@ -119,7 +123,7 @@ async fn get_sessions_missing_error() {
         .times(1)
         .returning(|_| Err(SessionGetError::Missing));
 
-    let res = get_sessions(Extension(session_repository), Path(session_id)).await;
+    let res = get_sessions(Extension(session_repository), mock_header()).await;
 
     assert!(res.is_err());
     assert_eq!(StatusCode::NOT_FOUND, res.unwrap_err())
@@ -137,7 +141,7 @@ async fn get_sessions_unknown_error() {
         .times(1)
         .returning(|_| Err(SessionGetError::Unknown));
 
-    let res = get_sessions(Extension(session_repository), Path(session_id)).await;
+    let res = get_sessions(Extension(session_repository), mock_header()).await;
 
     assert!(res.is_err());
     assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, res.unwrap_err())
@@ -155,7 +159,7 @@ async fn delete_sessions_normal() {
         .times(1)
         .returning(|_| Ok(()));
 
-    assert_eq!(StatusCode::CREATED, delete_sessions(Extension(session_repository), Path(session_id)).await)
+    assert_eq!(StatusCode::CREATED, delete_sessions(Extension(session_repository), mock_header()).await)
 }
 
 #[tokio::test]
@@ -170,5 +174,5 @@ async fn delete_sessions_unknown_error() {
         .times(1)
         .returning(|_| Err(SessionDeleteError::Unknown));
 
-    assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, delete_sessions(Extension(session_repository), Path(session_id)).await)
+    assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, delete_sessions(Extension(session_repository), mock_header()).await)
 }

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use axum::{Extension, Json, extract::Path};
+use axum::{Extension, Json, TypedHeader, headers::{authorization::Bearer, Authorization}};
 use http::StatusCode;
 use tracing::info;
 
@@ -17,9 +17,10 @@ pub async fn post_sessions<T: SessionRepository + Debug>(Extension(repository): 
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_sessions<T: SessionRepository + Debug>(Extension(repository): Extension<T>, Path(session_id): Path<String>) -> Result<Json<Session>, StatusCode> {
+pub async fn get_sessions<T: SessionRepository + Debug>(Extension(repository): Extension<T>, TypedHeader(session_id): TypedHeader<Authorization<Bearer>>) -> Result<Json<Session>, StatusCode> {
     info!("Received attempt to get session");
-    match repository.get(&session_id).await {
+
+    match repository.get(session_id.token()).await {
         Ok(session) => Ok(Json(session)),
         Err(SessionGetError::Missing) => Err(StatusCode::NOT_FOUND),
         Err(SessionGetError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -27,9 +28,10 @@ pub async fn get_sessions<T: SessionRepository + Debug>(Extension(repository): E
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn delete_sessions<T: SessionRepository + Debug>(Extension(repository): Extension<T>, Path(session_id): Path<String>) -> StatusCode {
+pub async fn delete_sessions<T: SessionRepository + Debug>(Extension(repository): Extension<T>, TypedHeader(session_id): TypedHeader<Authorization<Bearer>>) -> StatusCode {
     info!("Received attempt to delete session");
-    match repository.delete(&session_id).await {
+
+    match repository.delete(session_id.token()).await {
         Ok(()) => StatusCode::CREATED,
         Err(SessionDeleteError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR
     }

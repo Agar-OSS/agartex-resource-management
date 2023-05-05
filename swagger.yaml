@@ -64,19 +64,14 @@ paths:
         422:
           description: Missing fields
   
-  /sessions/{sessionId}:
-    parameters:
-      - in: path
-        name: sessionId
-        schema:
-          type: string
-        required: true
-        description: ID of the session
+  /sessions:
     get:
       tags:
         - sessions
       summary: Get data about session
-      description: Returns the data of the given session
+      description: Returns the data of the current session
+      security:
+        - session_id: []
       responses:
         200:
           description: Data of the session
@@ -92,13 +87,14 @@ paths:
       tags:
         - sessions
       summary: Delete session
-      description: Deletes the session with given ID
+      description: Deletes the current session
+      security:
+        - session_id: []
       responses:
         200:
           description: Successfully deleted session
         400:
           description: Malformed request
-  /sessions:
     post:
       tags:
         - sessions
@@ -171,3 +167,7 @@ components:
       type: apiKey
       in: header
       name: X-User-Id
+    session_id:
+      type: http
+      scheme: bearer
+      bearerFormat: Session ID
