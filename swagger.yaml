@@ -7,8 +7,10 @@ info:
 servers:
   - url: http://localhost:3200
 tags:
-  - name: user
-    description: Operations about user
+  - name: users
+    description: CRUD operations for users
+  - name: sessions
+    description: CRUD operations for sessions
 paths:
   /users/{userEmail}:
     parameters:
@@ -21,7 +23,7 @@ paths:
     get:
       summary: Get data about user
       tags:
-      - user
+      - users
       description: Returns data of the given user
       responses:
         200:
@@ -42,7 +44,7 @@ paths:
   /users:
     post:
       tags: 
-        - user
+        - users
       summary: Create a new user
       requestBody:
         content:
@@ -61,9 +63,86 @@ paths:
           description: Wrong content type (should be JSON)
         422:
           description: Missing fields
+  
+  /sessions/{sessionId}:
+    parameters:
+      - in: path
+        name: sessionId
+        schema:
+          type: string
+        required: true
+        description: ID of the session
+    get:
+      tags:
+        - sessions
+      summary: Get data about session
+      description: Returns the data of the given session
+      responses:
+        200:
+          description: Data of the session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        400:
+          description: Malformed request
+        404:
+          description: Session not found
+    delete:
+      tags:
+        - sessions
+      summary: Delete session
+      description: Deletes the session with given ID
+      responses:
+        200:
+          description: Successfully deleted session
+        400:
+          description: Malformed request
+  /sessions:
+    post:
+      tags:
+        - sessions
+      summary: Create a new session
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionData'
+      description: Creates a new session for the given user
+      responses:
+        201:
+          description: Session created successfully
+        400:
+          description: Malformed request
+        409:
+          description: Duplicate session
+        415:
+          description: Wrong content type (should be JSON)
+        422:
+          description: Missing fields
+
 
 components:
   schemas:
+    SessionData:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: integer
+        expires:
+          type: integer
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+        expires:
+          type: integer
+
     UserData:
       type: object
       properties:
@@ -86,3 +165,9 @@ components:
         password_hash:
           type: string
           example: idk_even
+          
+  securitySchemes:
+    user_id:
+      type: apiKey
+      in: header
+      name: X-User-Id
