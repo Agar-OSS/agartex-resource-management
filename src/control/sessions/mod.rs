@@ -32,7 +32,7 @@ pub async fn delete_sessions<T: SessionRepository + Debug>(Extension(repository)
     info!("Received attempt to delete session");
 
     match repository.delete(session_id.token()).await {
-        Ok(()) => StatusCode::CREATED,
+        Ok(()) => StatusCode::NO_CONTENT,
         Err(SessionDeleteError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR
     }
 }
