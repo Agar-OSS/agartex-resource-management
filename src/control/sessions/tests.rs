@@ -159,7 +159,7 @@ async fn delete_sessions_normal() {
         .times(1)
         .returning(|_| Ok(()));
 
-    assert_eq!(StatusCode::CREATED, delete_sessions(Extension(session_repository), mock_header()).await)
+    assert_eq!(StatusCode::OK, delete_sessions(Extension(session_repository), mock_header()).await)
 }
 
 #[tokio::test]

@@ -88,7 +88,7 @@ impl SessionRepository for PgSessionRepository {
 
     #[tracing::instrument(skip_all)]
     async fn delete(&self, id: &str) -> Result<(), SessionDeleteError> {
-        match sqlx::query("DELETE FROM sessions WHERE id = $1")
+        match sqlx::query("DELETE FROM sessions WHERE session_id = $1")
             .bind(id)
             .execute(&self.pool)
             .await
