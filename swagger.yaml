@@ -91,7 +91,7 @@ paths:
       security:
         - session_id: []
       responses:
-        200:
+        204:
           description: Successfully deleted session
         400:
           description: Malformed request
