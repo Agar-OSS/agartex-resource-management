@@ -1,22 +1,22 @@
 use axum::async_trait;
 use mockall::automock;
 use sqlx::PgPool;
-use tracing::error;
+use tracing::{error, info};
 
-use crate::domain::sessions::{SessionData, Session};
+use crate::domain::sessions::{Session, SessionData};
 
 pub enum SessionGetError {
     Missing,
-    Unknown
+    Unknown,
 }
 
 pub enum SessionDeleteError {
-    Unknown
+    Unknown,
 }
 
 pub enum SessionInsertError {
     Duplicate,
-    Unknown
+    Unknown,
 }
 
 #[automock]
@@ -29,7 +29,7 @@ pub trait SessionRepository {
 
 #[derive(Debug, Clone)]
 pub struct PgSessionRepository {
-    pub pool: PgPool
+    pub pool: PgPool,
 }
 
 impl PgSessionRepository {
@@ -42,21 +42,27 @@ impl PgSessionRepository {
 impl SessionRepository for PgSessionRepository {
     #[tracing::instrument(skip_all, fields(user_id = session_data.user_id))]
     async fn insert(&self, session_data: &SessionData) -> Result<(), SessionInsertError> {
-        let result = sqlx::query("
+        let result = sqlx::query(
+            "
             INSERT INTO sessions (session_id, user_id, expires) 
             VALUES ($1, $2, $3)
             ON CONFLICT DO NOTHING
-        ")
-            .bind(&session_data.id)
-            .bind(session_data.user_id)
-            .bind(session_data.expires)
-            .execute(&self.pool)
-            .await;
+        ",
+        )
+        .bind(&session_data.id)
+        .bind(session_data.user_id)
+        .bind(session_data.expires)
+        .execute(&self.pool)
+        .await;
 
         match result {
             Ok(result) => {
-                if result.rows_affected() > 0 { Ok(()) } else { Err(SessionInsertError::Duplicate) }
-            },
+                if result.rows_affected() > 0 {
+                    Ok(())
+                } else {
+                    Err(SessionInsertError::Duplicate)
+                }
+            }
             Err(err) => {
                 error!(%err);
                 Err(SessionInsertError::Unknown)
@@ -66,16 +72,19 @@ impl SessionRepository for PgSessionRepository {
 
     #[tracing::instrument(skip_all)]
     async fn get(&self, id: &str) -> Result<Session, SessionGetError> {
-        let session = sqlx::query_as::<_, Session>("
+        info!(id);
+        let session = sqlx::query_as::<_, Session>(
+            "
             SELECT session_id, users.user_id, expires, email, password_hash
             FROM sessions JOIN users
             ON sessions.user_id = users.user_id
             WHERE sessions.session_id = $1
-        ")
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await;
-    
+        ",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await;
+
         match session {
             Ok(Some(session)) => Ok(session),
             Ok(None) => return Err(SessionGetError::Missing),
