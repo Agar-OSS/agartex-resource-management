@@ -11,7 +11,7 @@ pub fn resources_router(documents_repository: PgResourceRepository) -> Router {
     let root_handler = routing::get(get_resources::<PgResourceRepository>)
         .post(post_resources::<PgResourceRepository>);
 
-    let documents_router = Router::new()
+    Router::new()
         .route("/", root_handler)
         .route(
             "/:document_id",
@@ -21,7 +21,5 @@ pub fn resources_router(documents_repository: PgResourceRepository) -> Router {
             "/:document_id/metadata",
             routing::put(put_resources_metadata::<PgResourceRepository>),
         )
-        .layer(Extension(documents_repository));
-
-    documents_router
+        .layer(Extension(documents_repository))
 }

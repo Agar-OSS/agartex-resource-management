@@ -56,7 +56,7 @@ impl ResourceRepository for PgResourceRepository {
         .await;
 
         match resources {
-            Ok(resources) if resources.len() > 0 => Ok(resources),
+            Ok(resources) if !resources.is_empty() => Ok(resources),
             Ok(_resources) => Err(ResourceGetError::Missing),
             Err(err) => {
                 error!(%err);

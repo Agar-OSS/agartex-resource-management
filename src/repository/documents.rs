@@ -55,7 +55,7 @@ impl DocumentRepository for PgDocumentRepository {
         .await;
 
         match documents {
-            Ok(documents) if documents.len() > 0 => Ok(documents),
+            Ok(documents) if !documents.is_empty() => Ok(documents),
             Ok(_documents) => Err(DocumentGetError::Missing),
             Err(err) => {
                 error!(%err);
