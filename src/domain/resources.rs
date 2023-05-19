@@ -13,8 +13,3 @@ pub struct Resource {
 pub struct ResourceData {
     pub name: String,
 }
-
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Deserialize)]
-pub struct ResourceMetaData {
-    pub name: String,
-}

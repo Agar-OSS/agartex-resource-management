@@ -13,8 +13,3 @@ pub struct Document {
 pub struct DocumentData {
     pub name: String,
 }
-
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Deserialize)]
-pub struct DocumentMetaData {
-    pub name: String,
-}

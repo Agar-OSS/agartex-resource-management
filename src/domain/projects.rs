@@ -13,7 +13,6 @@ pub struct Project {
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq, Deserialize)]
 pub struct ProjectData {
     pub main_document_id: i32,
-    pub owner: i32,
     pub name: String,
 }
 

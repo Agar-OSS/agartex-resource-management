@@ -8,11 +8,11 @@ use crate::domain::{
     projects::{Project, ProjectData, ProjectMetaData},
 };
 
-pub enum ProjectPostError {
+pub enum ProjectInsertError {
     Unknown,
     TransactionFailure,
 }
-pub enum ProjectPutError {
+pub enum ProjectUpdateError {
     Unknown,
 }
 pub enum ProjectGetError {
@@ -24,8 +24,8 @@ pub enum ProjectGetError {
 #[async_trait]
 pub trait ProjectRepository {
     async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError>;
-    async fn insert(&self, data: &ProjectData) -> Result<(), ProjectPostError>;
-    async fn update(&self, id: i32, data: &ProjectMetaData) -> Result<(), ProjectPutError>;
+    async fn insert(&self, data: &ProjectData, owner: i32) -> Result<(), ProjectInsertError>;
+    async fn update(&self, id: i32, data: &ProjectMetaData) -> Result<(), ProjectUpdateError>;
 }
 
 #[derive(Debug, Clone)]
@@ -69,7 +69,7 @@ impl ProjectRepository for PgProjectRepository {
         &self,
         id: i32,
         project_metadata: &ProjectMetaData,
-    ) -> Result<(), ProjectPutError> {
+    ) -> Result<(), ProjectUpdateError> {
         let result = sqlx::query(
             "
             UPDATE projects 
@@ -86,14 +86,18 @@ impl ProjectRepository for PgProjectRepository {
             Ok(_result) => Ok(()),
             Err(err) => {
                 error!(%err);
-                return Err(ProjectPutError::Unknown);
+                return Err(ProjectUpdateError::Unknown);
             }
         }
     }
-    async fn insert(&self, project_data: &ProjectData) -> Result<(), ProjectPostError> {
+    async fn insert(
+        &self,
+        project_data: &ProjectData,
+        owner: i32,
+    ) -> Result<(), ProjectInsertError> {
         let mut tx = match self.pool.begin().await {
             Ok(tx) => tx,
-            Err(_) => return Err(ProjectPostError::TransactionFailure),
+            Err(_) => return Err(ProjectInsertError::TransactionFailure),
         };
         info!("transaction aquired");
         let document_id = match sqlx::query_as::<_, CrudInt>(
@@ -108,10 +112,10 @@ impl ProjectRepository for PgProjectRepository {
         .await
         {
             Ok(Some(document_id)) => document_id,
-            Ok(None) => return Err(ProjectPostError::TransactionFailure),
+            Ok(None) => return Err(ProjectInsertError::TransactionFailure),
             Err(err) => {
                 error!(%err);
-                return Err(ProjectPostError::TransactionFailure);
+                return Err(ProjectInsertError::TransactionFailure);
             }
         };
         info!("first query done");
@@ -125,16 +129,16 @@ impl ProjectRepository for PgProjectRepository {
         ",
         )
         .bind(document_id.id)
-        .bind(project_data.owner)
+        .bind(owner)
         .bind(&project_data.name)
         .fetch_optional(&mut tx)
         .await
         {
             Ok(Some(project_id)) => project_id,
-            Ok(None) => return Err(ProjectPostError::TransactionFailure),
+            Ok(None) => return Err(ProjectInsertError::TransactionFailure),
             Err(err) => {
                 error!(%err);
-                return Err(ProjectPostError::TransactionFailure);
+                return Err(ProjectInsertError::TransactionFailure);
             }
         };
 
@@ -156,7 +160,7 @@ impl ProjectRepository for PgProjectRepository {
             Ok(()) => Ok(()),
             Err(err) => {
                 error!(%err);
-                return Err(ProjectPostError::Unknown);
+                return Err(ProjectInsertError::Unknown);
             }
         }
     }

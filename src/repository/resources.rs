@@ -3,12 +3,12 @@ use mockall::automock;
 use sqlx::PgPool;
 use tracing::{error, info};
 
-use crate::domain::resources::{Resource, ResourceData, ResourceMetaData};
+use crate::domain::resources::{Resource, ResourceData};
 
-pub enum ResourcePostError {
+pub enum ResourceInsertError {
     Unknown,
 }
-pub enum ResourcePutError {
+pub enum ResourceUpdateError {
     Unknown,
 }
 pub enum ResourceGetError {
@@ -19,14 +19,15 @@ pub enum ResourceGetError {
 #[automock]
 #[async_trait]
 pub trait ResourceRepository {
-    async fn get(&self, projcet_id: i32) -> Result<Vec<Resource>, ResourceGetError>;
-    async fn insert(&self, project_id: i32, data: &ResourceData) -> Result<(), ResourcePostError>;
+    async fn get(&self, project_id: i32) -> Result<Vec<Resource>, ResourceGetError>;
+    async fn insert(&self, project_id: i32, data: &ResourceData)
+        -> Result<(), ResourceInsertError>;
     async fn update(
         &self,
         project_id: i32,
         resource_id: i32,
-        data: &ResourceMetaData,
-    ) -> Result<(), ResourcePutError>;
+        data: &ResourceData,
+    ) -> Result<(), ResourceUpdateError>;
 }
 
 #[derive(Debug, Clone)]
@@ -67,8 +68,8 @@ impl ResourceRepository for PgResourceRepository {
         &self,
         project_id: i32,
         resource_id: i32,
-        resource_metadata: &ResourceMetaData,
-    ) -> Result<(), ResourcePutError> {
+        resource_metadata: &ResourceData,
+    ) -> Result<(), ResourceUpdateError> {
         let result = sqlx::query(
             "
             UPDATE resources 
@@ -85,7 +86,7 @@ impl ResourceRepository for PgResourceRepository {
             Ok(_result) => Ok(()),
             Err(err) => {
                 error!(%err);
-                return Err(ResourcePutError::Unknown);
+                return Err(ResourceUpdateError::Unknown);
             }
         }
     }
@@ -93,7 +94,7 @@ impl ResourceRepository for PgResourceRepository {
         &self,
         project_id: i32,
         resource_data: &ResourceData,
-    ) -> Result<(), ResourcePostError> {
+    ) -> Result<(), ResourceInsertError> {
         let result = sqlx::query(
             "
             INSERT_INTO resources (project_id, name)
@@ -110,7 +111,7 @@ impl ResourceRepository for PgResourceRepository {
             Ok(_result) => Ok(()),
             Err(err) => {
                 error!(%err);
-                return Err(ResourcePostError::Unknown);
+                return Err(ResourceInsertError::Unknown);
             }
         }
     }

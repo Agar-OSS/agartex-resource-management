@@ -3,12 +3,12 @@ use mockall::automock;
 use sqlx::PgPool;
 use tracing::{error, info};
 
-use crate::domain::documents::{Document, DocumentData, DocumentMetaData};
+use crate::domain::documents::{Document, DocumentData};
 
-pub enum DocumentPostError {
+pub enum DocumentInsertError {
     Unknown,
 }
-pub enum DocumentPutError {
+pub enum DocumentUpdateError {
     Unknown,
 }
 pub enum DocumentGetError {
@@ -20,13 +20,13 @@ pub enum DocumentGetError {
 #[async_trait]
 pub trait DocumentRepository {
     async fn get(&self, projcet_id: i32) -> Result<Vec<Document>, DocumentGetError>;
-    async fn insert(&self, project_id: i32, data: &DocumentData) -> Result<(), DocumentPostError>;
+    async fn insert(&self, project_id: i32, data: &DocumentData)
+        -> Result<(), DocumentInsertError>;
     async fn update(
         &self,
-        project_id: i32,
         document_id: i32,
-        data: &DocumentMetaData,
-    ) -> Result<(), DocumentPutError>;
+        data: &DocumentData,
+    ) -> Result<(), DocumentUpdateError>;
 }
 
 #[derive(Debug, Clone)]
@@ -65,10 +65,9 @@ impl DocumentRepository for PgDocumentRepository {
 
     async fn update(
         &self,
-        project_id: i32,
         document_id: i32,
-        document_metadata: &DocumentMetaData,
-    ) -> Result<(), DocumentPutError> {
+        document_metadata: &DocumentData,
+    ) -> Result<(), DocumentUpdateError> {
         let result = sqlx::query(
             "
             UPDATE documents 
@@ -85,7 +84,7 @@ impl DocumentRepository for PgDocumentRepository {
             Ok(_result) => Ok(()),
             Err(err) => {
                 error!(%err);
-                return Err(DocumentPutError::Unknown);
+                return Err(DocumentUpdateError::Unknown);
             }
         }
     }
@@ -93,12 +92,12 @@ impl DocumentRepository for PgDocumentRepository {
         &self,
         project_id: i32,
         document_data: &DocumentData,
-    ) -> Result<(), DocumentPostError> {
+    ) -> Result<(), DocumentInsertError> {
         let result = sqlx::query(
             "
             INSERT_INTO documents (project_id, name)
             VALUES ($1, $2)
-            ON CONFLICT do DO NOTHING
+            ON CONFLICT DO NOTHING
         ",
         )
         .bind(project_id)
@@ -110,7 +109,7 @@ impl DocumentRepository for PgDocumentRepository {
             Ok(_result) => Ok(()),
             Err(err) => {
                 error!(%err);
-                return Err(DocumentPostError::Unknown);
+                return Err(DocumentInsertError::Unknown);
             }
         }
     }

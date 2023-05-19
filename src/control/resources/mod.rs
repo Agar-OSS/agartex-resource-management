@@ -5,14 +5,14 @@ use axum::{
     headers::{authorization::Bearer, Authorization},
     Extension, Json, TypedHeader,
 };
-use http::StatusCode;
+use http::{HeaderMap, StatusCode};
 use tracing::info;
 
 use crate::{
-    domain::resources::{Resource, ResourceData, ResourceMetaData},
-    repository::crud::{CrudCheckError, CrudRepository},
+    domain::resources::{Resource, ResourceData},
+    repository::crud::CrudRepository,
     repository::resources::{
-        ResourceGetError, ResourcePostError, ResourcePutError, ResourceRepository,
+        ResourceGetError, ResourceInsertError, ResourceRepository, ResourceUpdateError,
     },
 };
 
@@ -20,19 +20,14 @@ use crate::{
 pub async fn get_resources<T: ResourceRepository + CrudRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    TypedHeader(user_id): TypedHeader<Authorization<Bearer>>,
+    _headers: HeaderMap,
 ) -> Result<Json<Vec<Resource>>, StatusCode> {
     info!("Received attempt to get a resource");
-    let user_idx: i32 = user_id.token().parse().unwrap();
 
-    match repository.check(user_idx).await {
-        Ok(_value) => match repository.get(project_id).await {
-            Ok(resources) => Ok(Json(resources)),
-            Err(ResourceGetError::Missing) => Err(StatusCode::NOT_FOUND),
-            Err(ResourceGetError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-        },
-        Err(CrudCheckError::Missing) => Err(StatusCode::NOT_FOUND),
-        Err(CrudCheckError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    match repository.get(project_id).await {
+        Ok(resources) => Ok(Json(resources)),
+        Err(ResourceGetError::Missing) => Err(StatusCode::NOT_FOUND),
+        Err(ResourceGetError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
@@ -40,18 +35,13 @@ pub async fn get_resources<T: ResourceRepository + CrudRepository + Clone + Send
 pub async fn post_resources<T: ResourceRepository + CrudRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    TypedHeader(user_id): TypedHeader<Authorization<Bearer>>,
+    _headers: HeaderMap,
     Json(data): Json<ResourceData>,
 ) -> StatusCode {
     info!("Received resource creation attempt");
-    let user_idx: i32 = user_id.token().parse().unwrap();
-    match repository.check(user_idx).await {
-        Ok(_value) => match repository.insert(project_id, &data).await {
-            Ok(()) => StatusCode::CREATED,
-            Err(ResourcePostError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
-        },
-        Err(CrudCheckError::Missing) => StatusCode::NOT_FOUND,
-        Err(CrudCheckError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
+    match repository.insert(project_id, &data).await {
+        Ok(()) => StatusCode::CREATED,
+        Err(ResourceInsertError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
 
@@ -62,19 +52,14 @@ pub async fn put_resources_metadata<
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
     Path(resource_id): Path<i32>,
-    TypedHeader(user_id): TypedHeader<Authorization<Bearer>>,
-    Json(data): Json<ResourceMetaData>,
+    _headers: HeaderMap,
+    Json(data): Json<ResourceData>,
 ) -> StatusCode {
     info!("Received resource update attempt");
 
-    let user_idx: i32 = user_id.token().parse().unwrap();
-    match repository.check(user_idx).await {
-        Ok(_value) => match repository.update(project_id, resource_id, &data).await {
-            Ok(()) => StatusCode::CREATED,
-            Err(ResourcePutError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
-        },
-        Err(CrudCheckError::Missing) => StatusCode::NOT_FOUND,
-        Err(CrudCheckError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
+    match repository.update(project_id, resource_id, &data).await {
+        Ok(()) => StatusCode::CREATED,
+        Err(ResourceUpdateError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
 
