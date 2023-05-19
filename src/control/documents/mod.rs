@@ -6,14 +6,13 @@ use tracing::info;
 
 use crate::{
     domain::documents::{Document, DocumentData},
-    repository::crud::CrudRepository,
     repository::documents::{
         DocumentGetError, DocumentInsertError, DocumentRepository, DocumentUpdateError,
     },
 };
 
 #[tracing::instrument(skip_all)]
-pub async fn get_documents<T: DocumentRepository + CrudRepository + Clone + Send + Sync>(
+pub async fn get_documents<T: DocumentRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
     _headers: HeaderMap,
@@ -28,7 +27,7 @@ pub async fn get_documents<T: DocumentRepository + CrudRepository + Clone + Send
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn post_documents<T: DocumentRepository + CrudRepository + Clone + Send + Sync>(
+pub async fn post_documents<T: DocumentRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
     _headers: HeaderMap,
@@ -43,9 +42,7 @@ pub async fn post_documents<T: DocumentRepository + CrudRepository + Clone + Sen
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn put_documents_metadata<
-    T: DocumentRepository + CrudRepository + Clone + Send + Sync,
->(
+pub async fn put_documents_metadata<T: DocumentRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(_project_id): Path<i32>,
     Path(document_id): Path<i32>,
@@ -61,7 +58,7 @@ pub async fn put_documents_metadata<
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn post_document_content<T: DocumentRepository + CrudRepository + Clone + Send + Sync>(
+pub async fn post_document_content<T: DocumentRepository + Clone + Send + Sync>(
     Extension(_repository): Extension<T>,
     Path(_project_id): Path<i32>,
     Path(_document_id): Path<i32>,

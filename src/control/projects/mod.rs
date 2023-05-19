@@ -6,12 +6,12 @@ use tracing::info;
 
 use crate::{
     domain::projects::{Project, ProjectData, ProjectMetaData},
+    repository::projects::ProjectUpdateError,
     repository::projects::{ProjectGetError, ProjectInsertError, ProjectRepository},
-    repository::{crud::CrudRepository, projects::ProjectUpdateError},
 };
 
 #[tracing::instrument(skip_all)]
-pub async fn get_projects<T: ProjectRepository + CrudRepository + Clone + Send + Sync>(
+pub async fn get_projects<T: ProjectRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     headers: HeaderMap,
 ) -> Result<Json<Vec<Project>>, StatusCode> {
@@ -27,7 +27,7 @@ pub async fn get_projects<T: ProjectRepository + CrudRepository + Clone + Send +
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn post_projects<T: ProjectRepository + CrudRepository + Clone + Send + Sync>(
+pub async fn post_projects<T: ProjectRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     headers: HeaderMap,
     Json(data): Json<ProjectData>,
@@ -43,7 +43,7 @@ pub async fn post_projects<T: ProjectRepository + CrudRepository + Clone + Send 
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn put_projects_metadata<T: ProjectRepository + CrudRepository + Clone + Send + Sync>(
+pub async fn put_projects_metadata<T: ProjectRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
     _headers: HeaderMap,

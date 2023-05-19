@@ -10,14 +10,13 @@ use tracing::info;
 
 use crate::{
     domain::resources::{Resource, ResourceData},
-    repository::crud::CrudRepository,
     repository::resources::{
         ResourceGetError, ResourceInsertError, ResourceRepository, ResourceUpdateError,
     },
 };
 
 #[tracing::instrument(skip_all)]
-pub async fn get_resources<T: ResourceRepository + CrudRepository + Clone + Send + Sync>(
+pub async fn get_resources<T: ResourceRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
     _headers: HeaderMap,
@@ -32,7 +31,7 @@ pub async fn get_resources<T: ResourceRepository + CrudRepository + Clone + Send
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn post_resources<T: ResourceRepository + CrudRepository + Clone + Send + Sync>(
+pub async fn post_resources<T: ResourceRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
     _headers: HeaderMap,
@@ -46,9 +45,7 @@ pub async fn post_resources<T: ResourceRepository + CrudRepository + Clone + Sen
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn put_resources_metadata<
-    T: ResourceRepository + CrudRepository + Clone + Send + Sync,
->(
+pub async fn put_resources_metadata<T: ResourceRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
     Path(resource_id): Path<i32>,
@@ -64,9 +61,7 @@ pub async fn put_resources_metadata<
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn post_resources_content<
-    T: ResourceRepository + CrudRepository + Clone + Send + Sync,
->(
+pub async fn post_resources_content<T: ResourceRepository + Clone + Send + Sync>(
     Extension(_repository): Extension<T>,
     Path(_project_id): Path<i32>,
     Path(_resource_id): Path<i32>,
