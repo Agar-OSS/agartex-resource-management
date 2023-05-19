@@ -133,10 +133,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Projects"
+        400:
+          description: Malformed request
         404:
           description: Project not found
-        500:
-          description: Internal server error
+        
     post:
       tags:
         - projects
@@ -152,8 +153,12 @@ paths:
       responses:
         201:
           description: Project created successfully
-        500:
-          description: Internal server error 
+        400:
+          description: Malformed Request 
+        415:
+          description: Wrong content type (should be JSON)
+        422:
+          description: Missing fields
   /projets/{projectId}/metadata:
     put:
       tags:
@@ -170,8 +175,12 @@ paths:
       responses:
         201:
           description: Project updated successfully
-        500:
-          description: Internal server error 
+        400:
+          description: Malformed Request 
+        415:
+          description: Wrong content type (should be JSON)
+        422:
+          description: Missing fields
 
 components:
   schemas:

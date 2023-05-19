@@ -1,7 +1,7 @@
 use axum::async_trait;
 use mockall::automock;
 use sqlx::PgPool;
-use tracing::{error, info};
+use tracing::{error};
 
 use crate::domain::documents::{Document, DocumentData};
 
@@ -55,7 +55,8 @@ impl DocumentRepository for PgDocumentRepository {
         .await;
 
         match documents {
-            Ok(documents) => Ok(documents),
+            Ok(documents) if documents.len() > 0 => Ok(documents),
+            Ok(_documents) => Err(DocumentGetError::Missing),
             Err(err) => {
                 error!(%err);
                 return Err(DocumentGetError::Unknown);

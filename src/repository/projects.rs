@@ -57,7 +57,8 @@ impl ProjectRepository for PgProjectRepository {
         .await;
 
         match projects {
-            Ok(projects) => Ok(projects),
+            Ok(projects) if projects.len() > 0 => Ok(projects),
+            Ok(_projects) => Err(ProjectGetError::Missing),
             Err(err) => {
                 error!(%err);
                 return Err(ProjectGetError::Unknown);

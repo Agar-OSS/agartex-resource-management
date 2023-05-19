@@ -1,7 +1,7 @@
 use axum::async_trait;
 use mockall::automock;
 use sqlx::PgPool;
-use tracing::{error, info};
+use tracing::{error};
 
 use crate::domain::resources::{Resource, ResourceData};
 
@@ -56,7 +56,8 @@ impl ResourceRepository for PgResourceRepository {
         .await;
 
         match resources {
-            Ok(resources) => Ok(resources),
+            Ok(resources) if resources.len() > 0 => Ok(resources),
+            Ok(_resources) => Err(ResourceGetError::Missing),
             Err(err) => {
                 error!(%err);
                 return Err(ResourceGetError::Unknown);
@@ -66,7 +67,7 @@ impl ResourceRepository for PgResourceRepository {
 
     async fn update(
         &self,
-        project_id: i32,
+        _project_id: i32,
         resource_id: i32,
         resource_metadata: &ResourceData,
     ) -> Result<(), ResourceUpdateError> {

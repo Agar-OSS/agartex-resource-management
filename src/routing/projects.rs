@@ -1,4 +1,4 @@
-use axum::{body::Body, routing, Extension, Router};
+use axum::{routing, Extension, Router};
 
 use crate::{
     control::projects::{get_projects, post_projects, put_projects_metadata},

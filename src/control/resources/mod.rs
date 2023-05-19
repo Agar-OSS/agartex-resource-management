@@ -1,15 +1,13 @@
-use std::fmt::Debug;
-
 use axum::{
     extract::Path,
-    headers::{authorization::Bearer, Authorization},
     Extension, Json, TypedHeader,
 };
-use http::{HeaderMap, StatusCode};
+use http::{StatusCode};
 use tracing::info;
 
 use crate::{
     domain::resources::{Resource, ResourceData},
+    domain::headers::XUserId,
     repository::resources::{
         ResourceGetError, ResourceInsertError, ResourceRepository, ResourceUpdateError,
     },
@@ -19,7 +17,7 @@ use crate::{
 pub async fn get_resources<T: ResourceRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    _headers: HeaderMap,
+    TypedHeader(_user_id): TypedHeader<XUserId>,
 ) -> Result<Json<Vec<Resource>>, StatusCode> {
     info!("Received attempt to get a resource");
 
@@ -34,7 +32,7 @@ pub async fn get_resources<T: ResourceRepository + Clone + Send + Sync>(
 pub async fn post_resources<T: ResourceRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    _headers: HeaderMap,
+    TypedHeader(_user_id): TypedHeader<XUserId>,
     Json(data): Json<ResourceData>,
 ) -> StatusCode {
     info!("Received resource creation attempt");
@@ -49,7 +47,7 @@ pub async fn put_resources_metadata<T: ResourceRepository + Clone + Send + Sync>
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
     Path(resource_id): Path<i32>,
-    _headers: HeaderMap,
+    TypedHeader(_user_id): TypedHeader<XUserId>,
     Json(data): Json<ResourceData>,
 ) -> StatusCode {
     info!("Received resource update attempt");
@@ -65,7 +63,7 @@ pub async fn post_resources_content<T: ResourceRepository + Clone + Send + Sync>
     Extension(_repository): Extension<T>,
     Path(_project_id): Path<i32>,
     Path(_resource_id): Path<i32>,
-    TypedHeader(_user_id): TypedHeader<Authorization<Bearer>>,
+    TypedHeader(_user_id): TypedHeader<XUserId>,
 ) -> StatusCode {
     info!("Received resource content upload");
     StatusCode::NOT_IMPLEMENTED
