@@ -96,60 +96,47 @@ impl ProjectRepository for PgProjectRepository {
             Err(_) => return Err(ProjectPostError::TransactionFailure),
         };
         info!("transaction aquired");
-        let _result_documents = match sqlx::query(
+        let document_id = match sqlx::query_as::<_, CrudInt>(
             "
-        INSERT INTO documents (name) 
-        VALUES ('main')
-        ON CONFLICT DO NOTHING
-    ",
-        )
-        .execute(&mut tx)
-        .await
-        {
-            Ok(result_documents) => result_documents,
-            Err(_) => return Err(ProjectPostError::TransactionFailure),
-        };
-        info!("first query done");
-        let document_id =
-            match sqlx::query_as::<_, CrudInt>("SELECT MAX(document_id) as id FROM documents")
-                .fetch_one(&mut tx)
-                .await
-            {
-                Ok(idx) => idx,
-                Err(err) => {
-                    error!(%err);
-                    return Err(ProjectPostError::TransactionFailure);
-                }
-            };
-
-        let _result_projects = match sqlx::query(
-            "
-            INSERT INTO projects (main_document_id, owner, name)
-            VALUES ($1, $2, $3)
+            INSERT INTO documents (name) 
+            VALUES ('main')
             ON CONFLICT DO NOTHING
+            RETURNING document_id as id
         ",
         )
-        .bind(document_id.id)
-        .bind(project_data.owner)
-        .bind(&project_data.name)
-        .execute(&mut tx)
+        .fetch_optional(&mut tx)
         .await
         {
-            Ok(result_projects) => result_projects,
+            Ok(Some(document_id)) => document_id,
+            Ok(None) => return Err(ProjectPostError::TransactionFailure),
             Err(err) => {
                 error!(%err);
                 return Err(ProjectPostError::TransactionFailure);
             }
         };
+        info!("first query done");
 
-        let project_id =
-            match sqlx::query_as::<_, CrudInt>("SELECT MAX(project_id) as id FROM projects")
-                .fetch_one(&mut tx)
-                .await
-            {
-                Ok(idx) => idx,
-                Err(_) => return Err(ProjectPostError::TransactionFailure),
-            };
+        let project_id = match sqlx::query_as::<_, CrudInt>(
+            "
+            INSERT INTO projects (main_document_id, owner, name)
+            VALUES ($1, $2, $3)
+            ON CONFLICT DO NOTHING
+            RETURNING project_id as id
+        ",
+        )
+        .bind(document_id.id)
+        .bind(project_data.owner)
+        .bind(&project_data.name)
+        .fetch_optional(&mut tx)
+        .await
+        {
+            Ok(Some(project_id)) => project_id,
+            Ok(None) => return Err(ProjectPostError::TransactionFailure),
+            Err(err) => {
+                error!(%err);
+                return Err(ProjectPostError::TransactionFailure);
+            }
+        };
 
         // Error was not handled but Ok was returned
         let _result_update_documents = sqlx::query(
