@@ -7,7 +7,7 @@ use tracing::info;
 
 use crate::{
     domain::resources::{Resource, ResourceData},
-    domain::headers::XUserId,
+    extractors::headers::XUserId,
     repository::resources::{
         ResourceGetError, ResourceInsertError, ResourceRepository, ResourceUpdateError,
     },
@@ -17,7 +17,7 @@ use crate::{
 pub async fn get_resources<T: ResourceRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    TypedHeader(_user_id): TypedHeader<XUserId>,
+    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
 ) -> Result<Json<Vec<Resource>>, StatusCode> {
     info!("Received attempt to get a resource");
 
@@ -32,7 +32,7 @@ pub async fn get_resources<T: ResourceRepository + Clone + Send + Sync>(
 pub async fn post_resources<T: ResourceRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    TypedHeader(_user_id): TypedHeader<XUserId>,
+    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
     Json(data): Json<ResourceData>,
 ) -> StatusCode {
     info!("Received resource creation attempt");
@@ -47,7 +47,7 @@ pub async fn put_resources_metadata<T: ResourceRepository + Clone + Send + Sync>
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
     Path(resource_id): Path<i32>,
-    TypedHeader(_user_id): TypedHeader<XUserId>,
+    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
     Json(data): Json<ResourceData>,
 ) -> StatusCode {
     info!("Received resource update attempt");

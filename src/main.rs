@@ -6,6 +6,7 @@ mod database;
 mod domain;
 mod repository;
 mod routing;
+mod extractors;
 
 use constants::SERVER_URL;
 

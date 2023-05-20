@@ -4,7 +4,7 @@ use tracing::info;
 
 use crate::{
     domain::documents::{Document, DocumentData},
-    domain::headers::XUserId,
+    extractors::headers::XUserId,
     repository::documents::{
         DocumentGetError, DocumentInsertError, DocumentRepository, DocumentUpdateError,
     },
@@ -14,7 +14,7 @@ use crate::{
 pub async fn get_documents<T: DocumentRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    TypedHeader(_user_id): TypedHeader<XUserId>,
+    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
 ) -> Result<Json<Vec<Document>>, StatusCode> {
     info!("Received attempt to get a document");
 
@@ -29,7 +29,7 @@ pub async fn get_documents<T: DocumentRepository + Clone + Send + Sync>(
 pub async fn post_documents<T: DocumentRepository + Clone + Send + Sync>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    TypedHeader(_user_id): TypedHeader<XUserId>,
+    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
     Json(data): Json<DocumentData>,
 ) -> StatusCode {
     info!("Received document creation attempt");
@@ -45,7 +45,7 @@ pub async fn put_documents_metadata<T: DocumentRepository + Clone + Send + Sync>
     Extension(repository): Extension<T>,
     Path(_project_id): Path<i32>,
     Path(document_id): Path<i32>,
-    TypedHeader(_user_id): TypedHeader<XUserId>,
+    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
     Json(data): Json<DocumentData>,
 ) -> StatusCode {
     info!("Received document update attempt");
@@ -61,7 +61,7 @@ pub async fn post_document_content<T: DocumentRepository + Clone + Send + Sync>(
     Extension(_repository): Extension<T>,
     Path(_project_id): Path<i32>,
     Path(_document_id): Path<i32>,
-    TypedHeader(_user_id): TypedHeader<XUserId>,
+    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
 ) -> StatusCode {
     info!("Received document content upload");
     StatusCode::NOT_IMPLEMENTED

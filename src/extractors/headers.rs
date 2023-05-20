@@ -1,12 +1,6 @@
 use headers::{Header, HeaderName, HeaderValue};
 use crate::constants;
-pub struct XUserId(i32);
-
-impl XUserId{
-    pub fn value(&self) -> i32{
-        self.0
-    }
-}
+pub struct XUserId(pub i32);
 
 impl Header for XUserId {
     fn name() -> &'static HeaderName {

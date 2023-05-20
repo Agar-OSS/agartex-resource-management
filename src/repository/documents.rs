@@ -19,7 +19,7 @@ pub enum DocumentGetError {
 #[automock]
 #[async_trait]
 pub trait DocumentRepository {
-    async fn get(&self, projcet_id: i32) -> Result<Vec<Document>, DocumentGetError>;
+    async fn get(&self, project_id: i32) -> Result<Vec<Document>, DocumentGetError>;
     async fn insert(&self, project_id: i32, data: &DocumentData)
         -> Result<(), DocumentInsertError>;
     async fn update(
