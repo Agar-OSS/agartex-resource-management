@@ -11,6 +11,8 @@ tags:
     description: CRUD operations for users
   - name: sessions
     description: CRUD operations for sessions
+  - name: projects
+    description: CRUD operations for projects
 paths:
   /users/{userEmail}:
     parameters:
@@ -23,15 +25,15 @@ paths:
     get:
       summary: Get data about user
       tags:
-      - users
+        - users
       description: Returns data of the given user
       responses:
         200:
           description: Data of the user
           content:
             application/json:
-              schema: 
-                $ref: '#/components/schemas/User'
+              schema:
+                $ref: "#/components/schemas/User"
         400:
           description: Malformed request
         404:
@@ -40,17 +42,17 @@ paths:
           description: Wrong content type (should be JSON)
         422:
           description: Missing fields
-  
+
   /users:
     post:
-      tags: 
+      tags:
         - users
       summary: Create a new user
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserData'
+              $ref: "#/components/schemas/UserData"
       description: Creates a new user using the provided database
       responses:
         201:
@@ -63,7 +65,7 @@ paths:
           description: Wrong content type (should be JSON)
         422:
           description: Missing fields
-  
+
   /sessions:
     get:
       tags:
@@ -78,7 +80,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Session'
+                $ref: "#/components/schemas/Session"
         400:
           description: Malformed request
         404:
@@ -103,7 +105,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SessionData'
+              $ref: "#/components/schemas/SessionData"
       description: Creates a new session for the given user
       responses:
         201:
@@ -116,7 +118,69 @@ paths:
           description: Wrong content type (should be JSON)
         422:
           description: Missing fields
-
+  /projects:
+    get:
+       tags:
+        - projects 
+      summary: Get project list
+      description: Returns a list of project for a specific user 
+      security:
+        - user_id: []
+      responses:
+        200:
+          description: Projects list 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Projects"
+        400:
+          description: Malformed request
+        404:
+          description: Project not found
+        
+    post:
+      tags:
+        - projects
+      summary: Create a new project
+      security:
+        user_id: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectData"
+      description: Creates a new project
+      responses:
+        201:
+          description: Project created successfully
+        400:
+          description: Malformed Request 
+        415:
+          description: Wrong content type (should be JSON)
+        422:
+          description: Missing fields
+  /projets/{projectId}/metadata:
+    put:
+      tags:
+        - projects
+      summary: Updates metadata of a project
+      security:
+        user_id: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectMetaData"
+      description: Creates a new project
+      responses:
+        201:
+          description: Project updated successfully
+        400:
+          description: Malformed Request 
+        415:
+          description: Wrong content type (should be JSON)
+        422:
+          description: Missing fields
 
 components:
   schemas:
@@ -135,7 +199,7 @@ components:
         id:
           type: string
         user:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         expires:
           type: integer
 
@@ -161,7 +225,45 @@ components:
         password_hash:
           type: string
           example: idk_even
-          
+    Projects:
+      type: array
+      items:
+         $ref: "#/components/schemas/Project"
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        main_document_id:
+          type: integer
+          format: int64
+          example: 1 
+        owner:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: sample_project
+    ProjectData:
+      type: object
+      properties:
+        main_document_id: 
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: sample_project
+    ProjectMetaData:
+      type: object
+      properties:
+        name:
+          type: string
+          example: sample_project
+
   securitySchemes:
     user_id:
       type: apiKey

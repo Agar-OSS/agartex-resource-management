@@ -1,4 +1,7 @@
-use sqlx::{Error, postgres::{PgPool, PgConnectOptions}};
+use sqlx::{
+    postgres::{PgConnectOptions, PgPool},
+    Error,
+};
 
 use crate::constants::FALLBACK_DB_URL;
 
@@ -10,7 +13,7 @@ pub async fn create_conn_pool() -> Result<PgPool, Error> {
     let options = PgConnectOptions::new();
     let pool = match PgPool::connect_with(options).await {
         Ok(pool) => pool,
-        Err(_) => PgPool::connect(FALLBACK_DB_URL).await?
+        Err(_) => PgPool::connect(FALLBACK_DB_URL).await?,
     };
     sqlx::migrate!().run(&pool).await?;
     Ok(pool)
