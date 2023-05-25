@@ -11,5 +11,3 @@ CREATE TABLE sessions (
     user_id INTEGER REFERENCES users(user_id),
     expires BIGINT NOT NULL
 );
-
-
