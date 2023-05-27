@@ -120,7 +120,7 @@ paths:
           description: Missing fields
   /projects:
     get:
-       tags:
+      tags:
         - projects 
       summary: Get project list
       description: Returns a list of project for a specific user 
@@ -143,7 +143,7 @@ paths:
         - projects
       summary: Create a new project
       security:
-        user_id: []
+        - user_id: []
       requestBody:
         content:
           application/json:
@@ -159,13 +159,13 @@ paths:
           description: Wrong content type (should be JSON)
         422:
           description: Missing fields
-  /projets/{projectId}/metadata:
+  /projects/{projectId}/metadata:
     put:
       tags:
         - projects
       summary: Updates metadata of a project
       security:
-        user_id: []
+        - user_id: []
       requestBody:
         content:
           application/json:
