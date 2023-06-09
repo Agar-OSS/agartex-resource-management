@@ -1,6 +1,8 @@
 CREATE TABLE projects (
     project_id SERIAL PRIMARY KEY,
     main_document_id INTEGER UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_modified TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     owner INTEGER REFERENCES users(user_id),
     name VARCHAR(128) NOT NULL
 );

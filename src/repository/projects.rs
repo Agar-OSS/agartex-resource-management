@@ -47,7 +47,7 @@ impl ProjectRepository for PgProjectRepository {
     async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError> {
         let projects = sqlx::query_as::<_, Project>(
             "
-            SELECT project_id, main_document_id, owner, name
+            SELECT project_id, name, created_at, last_modified, owner
             FROM projects
             WHERE projects.owner = $1
         ",
@@ -120,6 +120,7 @@ impl ProjectRepository for PgProjectRepository {
             }
         };
         info!("first query done");
+
 
         let project_id = match sqlx::query_as::<_, CrudInt>(
             "
