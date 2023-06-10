@@ -48,7 +48,7 @@ impl PgDocumentRepository {
 fn get_document_path(document_id: i32) -> PathBuf {
     let mut file_path = FILE_DIR_PATH.clone();
     file_path.push(document_id.to_string());
-    return file_path;
+    file_path
 }
 
 #[async_trait]
