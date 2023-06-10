@@ -1,9 +1,12 @@
+use std::path::PathBuf;
+
 use axum::async_trait;
 use mockall::automock;
 use sqlx::PgPool;
-use tracing::{error};
+use tokio::fs;
+use tracing::error;
 
-use crate::domain::documents::{Document, DocumentData};
+use crate::{domain::documents::{Document, DocumentData}, constants::FILE_DIR_PATH};
 
 pub enum DocumentInsertError {
     Unknown,
@@ -27,6 +30,8 @@ pub trait DocumentRepository {
         document_id: i32,
         data: &DocumentData,
     ) -> Result<(), DocumentUpdateError>;
+    async fn read_file(&self, project_id: i32) -> Result<PathBuf, DocumentGetError>;
+    async fn write_file(&self, project_id: i32, content: &str) -> Result<(), DocumentUpdateError>;
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +43,12 @@ impl PgDocumentRepository {
     pub fn new(pool: &PgPool) -> Self {
         Self { pool: pool.clone() }
     }
+}
+
+fn get_document_path(document_id: i32) -> PathBuf {
+    let mut file_path = FILE_DIR_PATH.clone();
+    file_path.push(document_id.to_string());
+    return file_path;
 }
 
 #[async_trait]
@@ -98,7 +109,6 @@ impl DocumentRepository for PgDocumentRepository {
             "
             INSERT_INTO documents (project_id, name)
             VALUES ($1, $2)
-            ON CONFLICT DO NOTHING
         ",
         )
         .bind(project_id)
@@ -110,8 +120,31 @@ impl DocumentRepository for PgDocumentRepository {
             Ok(_result) => Ok(()),
             Err(err) => {
                 error!(%err);
-                return Err(DocumentInsertError::Unknown);
+                Err(DocumentInsertError::Unknown)
             }
         }
+    }
+
+    async fn read_file(&self, document_id: i32) -> Result<PathBuf, DocumentGetError> {
+        // We don't check any access privileges for now
+        let file_path = get_document_path(document_id);
+
+        if !file_path.exists() {
+            if let Err(err) = fs::write(&file_path, "").await {
+                error!(%err);
+                return Err(DocumentGetError::Unknown);
+            }
+        }
+        Ok(file_path)
+    }
+
+    async fn write_file(&self, document_id: i32, content: &str) -> Result<(), DocumentUpdateError> {
+        // We don't check any access privileges for now
+        let file_path = get_document_path(document_id);
+
+        fs::write(file_path, content).await.map_err(|err| {
+            error!(%err);
+            DocumentUpdateError::Unknown
+        })
     }
 }

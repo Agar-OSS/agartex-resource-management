@@ -38,10 +38,8 @@ paths:
           description: Malformed request
         404:
           description: User with given email not found
-        415:
-          description: Wrong content type (should be JSON)
         422:
-          description: Missing fields
+          description: Missing paramaters
 
   /users:
     post:
@@ -159,7 +157,68 @@ paths:
           description: Wrong content type (should be JSON)
         422:
           description: Missing fields
+
+  /projects/{projectId}:
+    parameters:
+      - in: path
+        name: projectId
+        schema:
+          type: integer
+        example: 1
+        required: true
+    get:
+      tags:
+        - projects
+      summary: Gets file text
+      security:
+        - user_id: []
+      description: Returns the content of the document associated with the given project
+      responses:
+        200:
+          description: Project text retrieved successfully
+          content:
+            text/plain:
+              schema: 
+                type: string
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: inline
+        400:
+          description: Malformed Request 
+        404:
+          description: Project not found
+        422:
+          description: Missing paramaters
+    put:
+      tags:
+        - projects
+      summary: Updates file text
+      security:
+        - user_id: []
+      requestBody:
+        content:
+          text/plain:
+            schema: 
+              type: string
+      description: Updates the content of the document associated with the given project
+      responses:
+        204:
+          description: Project updated successfully
+        400:
+          description: Malformed Request
+        415:
+          description: Wrong content type (should be plain text)
+        422:
+          description: Missing paramaters
   /projects/{projectId}/metadata:
+    parameters:
+      - in: path
+        name: projectId
+        schema:
+          type: integer
+        required: true
     put:
       tags:
         - projects
@@ -171,16 +230,16 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/ProjectMetaData"
-      description: Creates a new project
+      description: Updates the display name of the project
       responses:
-        201:
+        204:
           description: Project updated successfully
         400:
           description: Malformed Request 
         415:
           description: Wrong content type (should be JSON)
         422:
-          description: Missing fields
+          description: Missing paramaters
 
 components:
   schemas:

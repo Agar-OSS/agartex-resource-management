@@ -1,7 +1,7 @@
 use axum::async_trait;
 use mockall::automock;
 use sqlx::PgPool;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::domain::{
     crud::CrudInt,
@@ -24,6 +24,7 @@ pub enum ProjectGetError {
 #[async_trait]
 pub trait ProjectRepository {
     async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError>;
+    async fn get_metadata(&self, project_id: i32) -> Result<Project, ProjectGetError>;
     async fn insert(&self, data: &ProjectData, owner: i32) -> Result<(), ProjectInsertError>;
     async fn update(&self, id: i32, data: &ProjectMetaData) -> Result<(), ProjectUpdateError>;
 }
@@ -36,9 +37,6 @@ pub struct PgProjectRepository {
 impl PgProjectRepository {
     pub fn new(pool: &PgPool) -> Self {
         Self { pool: pool.clone() }
-    }
-    pub fn clone_pool(&self) -> PgPool {
-        self.pool.clone()
     }
 }
 
@@ -62,6 +60,32 @@ impl ProjectRepository for PgProjectRepository {
             Err(err) => {
                 error!(%err);
                 return Err(ProjectGetError::Unknown);
+            }
+        }
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_metadata(&self, project_id: i32) -> Result<Project, ProjectGetError> {
+        let sql = "
+            SELECT project_id, main_document_id, owner, name
+            FROM projects
+            WHERE project_id = $1
+        ";
+        
+        let project = sqlx::query_as::<_, Project>(sql)
+            .bind(project_id)
+            .fetch_optional(&self.pool)
+            .await;
+
+        match project {
+            Ok(Some(project)) => Ok(project),
+            Ok(None) =>{
+                warn!("Missing project");
+                Err(ProjectGetError::Missing)
+            },
+            Err(err) => {
+                error!(%err);
+                Err(ProjectGetError::Unknown)
             }
         }
     }
