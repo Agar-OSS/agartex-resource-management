@@ -1,11 +1,11 @@
-use axum::{extract::Path, Extension, Json, TypedHeader};
+use axum::{extract::Path, Extension, Json, TypedHeader, response::IntoResponse};
 use http::StatusCode;
 use tracing::info;
 
 use crate::{
     domain::projects::{Project, ProjectData, ProjectMetaData},
     extractors::headers::XUserId,
-    repository::projects::ProjectUpdateError,
+    repository::{projects::ProjectUpdateError, documents::{DocumentRepository, DocumentGetError}},
     repository::projects::{ProjectGetError, ProjectInsertError, ProjectRepository},
 };
 
@@ -33,7 +33,6 @@ pub async fn post_projects<T: ProjectRepository + Clone + Send + Sync>(
     
     match repository.insert(&data, user_id).await {
         Ok(()) => StatusCode::CREATED,
-        Err(ProjectInsertError::TransactionFailure) => StatusCode::INTERNAL_SERVER_ERROR,
         Err(ProjectInsertError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
@@ -48,7 +47,57 @@ pub async fn put_projects_metadata<T: ProjectRepository + Clone + Send + Sync>(
     info!("Received project update attempt");
 
     match repository.update(project_id, &data).await {
-        Ok(()) => StatusCode::CREATED,
+        Ok(()) => StatusCode::NO_CONTENT,
         Err(ProjectUpdateError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+#[tracing::instrument(skip(project_repository, document_repository))]
+pub async fn get_project_document<P: ProjectRepository, D: DocumentRepository>(
+    Extension(project_repository): Extension<P>,
+    Extension(document_repository): Extension<D>,
+    Path(project_id): Path<i32>
+) -> Result<impl IntoResponse, StatusCode> {
+    info!("Received attempt to get document text");
+
+    let document_id = match project_repository.get_metadata(project_id).await {
+        Ok(project) => project.main_document_id,
+        Err(ProjectGetError::Missing) => return Err(StatusCode::NOT_FOUND),
+        Err(ProjectGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR)
+    };
+
+    info!("Retrieved document id: {}", document_id);
+
+    let content = match document_repository.read_file(document_id).await {
+        Ok(content) => content,
+        Err(DocumentGetError::Missing) => return Err(StatusCode::NOT_FOUND),
+        Err(DocumentGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR)
+    };
+
+    info!("Successfully retrieved file content");
+
+    Ok(content)
+}
+
+#[tracing::instrument(skip(project_repository, document_repository))]
+pub async fn put_project_document<P: ProjectRepository, D: DocumentRepository>(
+    Extension(project_repository): Extension<P>,
+    Extension(document_repository): Extension<D>,
+    Path(project_id): Path<i32>,
+    content: String
+) -> StatusCode {
+    info!("Received attempt to update document text");
+
+    let document_id = match project_repository.get_metadata(project_id).await {
+        Ok(project) => project.main_document_id,
+        Err(ProjectGetError::Missing) => return StatusCode::NOT_FOUND,
+        Err(ProjectGetError::Unknown) => return StatusCode::INTERNAL_SERVER_ERROR
+    };
+
+    info!("Retrieved document id: {}", document_id);
+
+    match document_repository.write_file(document_id, &content).await {
+        Ok(_) => StatusCode::NO_CONTENT,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR
     }
 }

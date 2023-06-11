@@ -1,4 +1,4 @@
-use std::{str::FromStr, fmt::Debug, env, net::{SocketAddr, IpAddr, Ipv4Addr}};
+use std::{str::FromStr, fmt::Debug, env, net::{SocketAddr, IpAddr, Ipv4Addr}, path::PathBuf};
 
 use http::HeaderName;
 use lazy_static::lazy_static;
@@ -27,4 +27,5 @@ pub static XUSERID_HEADER_NAME: HeaderName = HeaderName::from_static("x-user-id"
 lazy_static! {
     pub static ref SERVER_URL: SocketAddr = load_env_or_default("SERVER_URL", SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 3200));
     pub static ref SESSION_COOKIE_NAME: String = load_env_or_default("SESSION_COOKIE_NAME", String::from("RSESSID"));
+    pub static ref FILE_DIR_PATH: PathBuf = load_env_or_default("FILE_DIR_PATH", PathBuf::from(r"blobs"));
 }

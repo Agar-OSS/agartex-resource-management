@@ -1,18 +1,23 @@
+use std::fs;
+
 use tracing::{error, info};
 
 mod constants;
 mod control;
 mod database;
 mod domain;
+mod filesystem;
 mod repository;
 mod routing;
 mod extractors;
 
-use constants::SERVER_URL;
+use constants::{SERVER_URL, FILE_DIR_PATH};
 
 #[tracing::instrument]
 pub async fn run() -> anyhow::Result<()> {
     tracing_subscriber::fmt().init();
+
+    fs::create_dir_all(FILE_DIR_PATH.as_path())?;
 
     let pool = match database::create_conn_pool().await {
         Ok(pool) => pool,
