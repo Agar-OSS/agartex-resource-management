@@ -126,7 +126,7 @@ impl ProjectRepository for PgProjectRepository {
                 return Err(ProjectInsertError::Unknown);
             }
         };
-        info!("Transaction aquired");
+        info!("Transaction acquired");
 
         let insert_document_sql = "
             INSERT INTO documents (name) 
