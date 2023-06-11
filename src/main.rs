@@ -6,6 +6,7 @@ mod constants;
 mod control;
 mod database;
 mod domain;
+mod filesystem;
 mod repository;
 mod routing;
 mod extractors;

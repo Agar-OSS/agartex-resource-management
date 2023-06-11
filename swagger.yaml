@@ -208,6 +208,8 @@ paths:
           description: Project updated successfully
         400:
           description: Malformed Request
+        404:
+          description: Project not found
         415:
           description: Wrong content type (should be plain text)
         422:
@@ -235,7 +237,9 @@ paths:
         204:
           description: Project updated successfully
         400:
-          description: Malformed Request 
+          description: Malformed Request
+        404:
+          description: Project not found
         415:
           description: Wrong content type (should be JSON)
         422:

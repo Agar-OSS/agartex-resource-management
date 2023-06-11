@@ -52,6 +52,7 @@ pub async fn put_documents_metadata<T: DocumentRepository + Clone + Send + Sync>
 
     match repository.update(document_id, &data).await {
         Ok(()) => StatusCode::CREATED,
+        Err(DocumentUpdateError::Missing) => StatusCode::NOT_FOUND,
         Err(DocumentUpdateError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }

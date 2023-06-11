@@ -1,13 +1,11 @@
-use axum::{extract::Path, Extension, Json, TypedHeader, response::{IntoResponse, AppendHeaders}, body::StreamBody};
-use http::{StatusCode, header::{CONTENT_TYPE, CONTENT_DISPOSITION}};
-use tokio::fs::File;
-use tokio_util::io::ReaderStream;
+use axum::{extract::Path, Extension, Json, TypedHeader, response::IntoResponse};
+use http::StatusCode;
 use tracing::info;
 
 use crate::{
     domain::projects::{Project, ProjectData, ProjectMetaData},
     extractors::headers::XUserId,
-    repository::{projects::ProjectUpdateError, documents::DocumentRepository},
+    repository::{projects::ProjectUpdateError, documents::{DocumentRepository, DocumentGetError}},
     repository::projects::{ProjectGetError, ProjectInsertError, ProjectRepository},
 };
 
@@ -35,7 +33,6 @@ pub async fn post_projects<T: ProjectRepository + Clone + Send + Sync>(
     
     match repository.insert(&data, user_id).await {
         Ok(()) => StatusCode::CREATED,
-        Err(ProjectInsertError::TransactionFailure) => StatusCode::INTERNAL_SERVER_ERROR,
         Err(ProjectInsertError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
@@ -71,29 +68,15 @@ pub async fn get_project_document<P: ProjectRepository, D: DocumentRepository>(
 
     info!("Retrieved document id: {}", document_id);
 
-    let path = match document_repository.read_file(document_id).await {
-        Ok(path) => path,
-        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR)
+    let content = match document_repository.read_file(document_id).await {
+        Ok(content) => content,
+        Err(DocumentGetError::Missing) => return Err(StatusCode::NOT_FOUND),
+        Err(DocumentGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR)
     };
 
-    info!("Retrieved path: {:?}", path);
+    info!("Successfully retrieved file content");
 
-    let file = match File::open(&path).await {
-        Ok(file) => file,
-        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR)
-    };
-
-    let stream = ReaderStream::new(file);
-    let body = StreamBody::new(stream);
-
-    let headers = AppendHeaders([
-        (CONTENT_TYPE, "text/plain"),
-        (CONTENT_DISPOSITION, "inline")
-    ]);
-
-    info!("Successfully retrieved file body for project: {}", project_id);
-
-    Ok((headers, body))
+    Ok(content)
 }
 
 #[tracing::instrument(skip(project_repository, document_repository))]

@@ -1,17 +1,15 @@
-use std::path::PathBuf;
-
 use axum::async_trait;
 use mockall::automock;
 use sqlx::PgPool;
-use tokio::fs;
 use tracing::error;
 
-use crate::{domain::documents::{Document, DocumentData}, constants::FILE_DIR_PATH};
+use crate::{domain::{documents::{Document, DocumentData}, crud::CrudInt}, filesystem::{read_file, FileReadError, FileWriteError, write_file, get_document_path}};
 
 pub enum DocumentInsertError {
     Unknown,
 }
 pub enum DocumentUpdateError {
+    Missing,
     Unknown,
 }
 pub enum DocumentGetError {
@@ -30,7 +28,7 @@ pub trait DocumentRepository {
         document_id: i32,
         data: &DocumentData,
     ) -> Result<(), DocumentUpdateError>;
-    async fn read_file(&self, project_id: i32) -> Result<PathBuf, DocumentGetError>;
+    async fn read_file(&self, project_id: i32) -> Result<String, DocumentGetError>;
     async fn write_file(&self, project_id: i32, content: &str) -> Result<(), DocumentUpdateError>;
 }
 
@@ -43,12 +41,6 @@ impl PgDocumentRepository {
     pub fn new(pool: &PgPool) -> Self {
         Self { pool: pool.clone() }
     }
-}
-
-fn get_document_path(document_id: i32) -> PathBuf {
-    let mut file_path = FILE_DIR_PATH.clone();
-    file_path.push(document_id.to_string());
-    file_path
 }
 
 #[async_trait]
@@ -105,46 +97,57 @@ impl DocumentRepository for PgDocumentRepository {
         project_id: i32,
         document_data: &DocumentData,
     ) -> Result<(), DocumentInsertError> {
-        let result = sqlx::query(
-            "
-            INSERT_INTO documents (project_id, name)
-            VALUES ($1, $2)
-        ",
-        )
-        .bind(project_id)
-        .bind(&document_data.name)
-        .execute(&self.pool)
-        .await;
-
-        match result {
-            Ok(_result) => Ok(()),
+        let mut tx = match self.pool.begin().await {
+            Ok(tx) => tx,
             Err(err) => {
                 error!(%err);
-                Err(DocumentInsertError::Unknown)
+                return Err(DocumentInsertError::Unknown);
             }
+        };
+
+        let insert_document_sql = "
+            INSERT_INTO documents (project_id, name)
+            VALUES ($1, $2)
+            RETURNING document_id
+        ";
+        
+        let result = sqlx::query_as::<_, CrudInt>(insert_document_sql)
+            .bind(project_id)
+            .bind(&document_data.name)
+            .fetch_one(&mut tx);
+
+        let document_id = match result.await {
+            Ok(document_id) => document_id,
+            Err(err) => {
+                error!(%err);
+                return Err(DocumentInsertError::Unknown);
+            }
+        };
+
+        if write_file(get_document_path(document_id.id), "", true).await.is_err() {
+            return Err(DocumentInsertError::Unknown);
         }
+
+        tx.commit().await.map_err(|err| {
+            error!(%err);
+            DocumentInsertError::Unknown
+        })
     }
 
-    async fn read_file(&self, document_id: i32) -> Result<PathBuf, DocumentGetError> {
+    #[tracing::instrument(skip(self))]
+    async fn read_file(&self, document_id: i32) -> Result<String, DocumentGetError> {
         // We don't check any access privileges for now
-        let file_path = get_document_path(document_id);
-
-        if !file_path.exists() {
-            if let Err(err) = fs::write(&file_path, "").await {
-                error!(%err);
-                return Err(DocumentGetError::Unknown);
-            }
-        }
-        Ok(file_path)
+        read_file(get_document_path(document_id)).await.map_err(|err| match err {
+            FileReadError::Missing => DocumentGetError::Missing,
+            FileReadError::Unknown => DocumentGetError::Unknown
+        })
     }
 
     async fn write_file(&self, document_id: i32, content: &str) -> Result<(), DocumentUpdateError> {
         // We don't check any access privileges for now
-        let file_path = get_document_path(document_id);
-
-        fs::write(file_path, content).await.map_err(|err| {
-            error!(%err);
-            DocumentUpdateError::Unknown
+        write_file(get_document_path(document_id), content, false).await.map_err(|err| match err {
+            FileWriteError::Missing => DocumentUpdateError::Missing,
+            FileWriteError::Unknown => DocumentUpdateError::Unknown
         })
     }
 }
