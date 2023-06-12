@@ -299,6 +299,8 @@ paths:
           description: Malformed Request
         404:
           description: Project not found
+        409:
+          description: Duplicate resource
         415:
           description: Wrong content type (should be JSON)
         422:
