@@ -324,9 +324,10 @@ paths:
         - user_id: []
       requestBody:
         content:
-          application/json:
+          image/*:
             schema:
-              $ref: "#/components/schemas/ResourceMetadata"
+              type: string
+              format: binary
       description: Uploads new content of a given resource in a given project
       responses:
         204:
