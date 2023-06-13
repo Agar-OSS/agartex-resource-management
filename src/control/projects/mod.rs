@@ -12,10 +12,10 @@ use crate::{
 #[tracing::instrument(skip(repository))]
 pub async fn get_projects<T: ProjectRepository>(
     Extension(repository): Extension<T>,
-    TypedHeader(XUserId(user_id)): TypedHeader<XUserId>
+    TypedHeader(XUserId(user_id)): TypedHeader<XUserId>,
 ) -> Result<Json<Vec<Project>>, StatusCode> {
     info!("Received attempt to get a project");
-    
+
     match repository.get(user_id).await {
         Ok(projects) => Ok(Json(projects)),
         Err(ProjectGetError::Missing) => Err(StatusCode::NOT_FOUND),
@@ -30,7 +30,7 @@ pub async fn post_projects<T: ProjectRepository>(
     Json(data): Json<ProjectMetadata>,
 ) -> Result<(StatusCode, Json<Project>), StatusCode> {
     info!("Received project creation attempt");
-    
+
     match repository.insert(&data, user_id).await {
         Ok(project) => Ok((StatusCode::CREATED, Json(project))),
         Err(ProjectInsertError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -41,7 +41,7 @@ pub async fn post_projects<T: ProjectRepository>(
 pub async fn put_projects_metadata<T: ProjectRepository>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    Json(data): Json<ProjectMetadata>
+    Json(data): Json<ProjectMetadata>,
 ) -> StatusCode {
     info!("Received project update attempt");
 

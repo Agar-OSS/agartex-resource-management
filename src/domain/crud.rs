@@ -1,4 +1,4 @@
-use serde::{Serialize};
+use serde::Serialize;
 use sqlx;
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq, Serialize)]

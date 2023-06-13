@@ -3,15 +3,22 @@ use std::path::PathBuf;
 use tokio::fs;
 use tracing::{error, warn};
 
-use crate::{constants::FILE_DIR_PATH, domain::{resources::Resource, documents::Document}};
+use crate::{
+    constants::FILE_DIR_PATH,
+    domain::{documents::Document, resources::Resource},
+};
 
 pub enum FileWriteError {
     Missing,
-    Unknown
+    Unknown,
 }
 
 #[tracing::instrument(skip(content))]
-pub async fn write_file(path: PathBuf, content: impl AsRef<[u8]>, create_if_not_exists: bool) -> Result<(), FileWriteError> {
+pub async fn write_file(
+    path: PathBuf,
+    content: impl AsRef<[u8]>,
+    create_if_not_exists: bool,
+) -> Result<(), FileWriteError> {
     if !path.exists() && !create_if_not_exists {
         warn!("Missing file");
         return Err(FileWriteError::Missing);
@@ -25,7 +32,7 @@ pub async fn write_file(path: PathBuf, content: impl AsRef<[u8]>, create_if_not_
 
 pub enum FileReadError {
     Missing,
-    Unknown
+    Unknown,
 }
 
 #[tracing::instrument]

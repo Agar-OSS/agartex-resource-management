@@ -14,5 +14,5 @@ pub struct Resource {
 #[derive(Debug, Clone, PartialEq, Deserialize, Validate)]
 pub struct ResourceMetadata {
     #[validate(length(min = 1, max = 128), regex = "NAME_REGEX")]
-    pub name: String
+    pub name: String,
 }

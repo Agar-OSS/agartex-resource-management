@@ -1,9 +1,12 @@
 use axum::async_trait;
 use mockall::automock;
 use sqlx::PgPool;
-use tracing::{error};
+use tracing::error;
 
-use crate::{domain::resources::{Resource, ResourceMetadata}, filesystem::{write_file, get_resource_path, FileWriteError}};
+use crate::{
+    domain::resources::{Resource, ResourceMetadata},
+    filesystem::{get_resource_path, write_file, FileWriteError},
+};
 
 pub enum ResourceInsertError {
     Duplicate,
@@ -22,14 +25,21 @@ pub enum ResourceGetError {
 #[async_trait]
 pub trait ResourceRepository {
     async fn get(&self, project_id: i32) -> Result<Vec<Resource>, ResourceGetError>;
-    async fn get_meta(&self, project_id: i32, resource_id: i32) -> Result<Resource, ResourceGetError>;
-    async fn insert(&self, project_id: i32, data: &ResourceMetadata)
-        -> Result<Resource, ResourceInsertError>;
+    async fn get_meta(
+        &self,
+        project_id: i32,
+        resource_id: i32,
+    ) -> Result<Resource, ResourceGetError>;
+    async fn insert(
+        &self,
+        project_id: i32,
+        data: &ResourceMetadata,
+    ) -> Result<Resource, ResourceInsertError>;
     async fn update(
         &self,
         project_id: i32,
         resource_id: i32,
-        content: &[u8]
+        content: &[u8],
     ) -> Result<(), ResourceUpdateError>;
 }
 
@@ -53,7 +63,7 @@ impl ResourceRepository for PgResourceRepository {
             FROM resources
             WHERE project_id = $1
         ";
-        
+
         let resources = sqlx::query_as::<_, Resource>(resource_get_sql)
             .bind(project_id)
             .fetch_all(&self.pool)
@@ -69,13 +79,17 @@ impl ResourceRepository for PgResourceRepository {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_meta(&self, project_id: i32, resource_id: i32) -> Result<Resource, ResourceGetError> {
+    async fn get_meta(
+        &self,
+        project_id: i32,
+        resource_id: i32,
+    ) -> Result<Resource, ResourceGetError> {
         let resource_get_sql = "
             SELECT resource_id, project_id, name
             FROM resources
             WHERE project_id = $1 AND resource_id = $2
         ";
-        
+
         let result = sqlx::query_as::<_, Resource>(resource_get_sql)
             .bind(project_id)
             .bind(resource_id)
@@ -101,15 +115,15 @@ impl ResourceRepository for PgResourceRepository {
         let resource = match self.get_meta(project_id, resource_id).await {
             Ok(resource) => resource,
             Err(ResourceGetError::Missing) => return Err(ResourceUpdateError::Missing),
-            Err(ResourceGetError::Unknown) => return Err(ResourceUpdateError::Unknown)
+            Err(ResourceGetError::Unknown) => return Err(ResourceUpdateError::Unknown),
         };
 
-        write_file(get_resource_path(&resource), content, false).await.map_err(|err| {
-            match err {
+        write_file(get_resource_path(&resource), content, false)
+            .await
+            .map_err(|err| match err {
                 FileWriteError::Missing => ResourceUpdateError::Missing,
-                FileWriteError::Unknown => ResourceUpdateError::Unknown
-            }
-        })
+                FileWriteError::Unknown => ResourceUpdateError::Unknown,
+            })
     }
 
     #[tracing::instrument(skip(self))]
@@ -132,7 +146,7 @@ impl ResourceRepository for PgResourceRepository {
             ON CONFLICT DO NOTHING
             RETURNING resource_id, project_id, name
         "#;
-        
+
         let result = sqlx::query_as::<_, Resource>(insert_resource_sql)
             .bind(project_id)
             .bind(&resource_data.name)
@@ -147,7 +161,10 @@ impl ResourceRepository for PgResourceRepository {
             }
         };
 
-        if write_file(get_resource_path(&resource), b"", true).await.is_err() {
+        if write_file(get_resource_path(&resource), b"", true)
+            .await
+            .is_err()
+        {
             return Err(ResourceInsertError::Unknown);
         }
 

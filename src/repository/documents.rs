@@ -3,7 +3,10 @@ use mockall::automock;
 use sqlx::PgPool;
 use tracing::error;
 
-use crate::{domain::documents::{Document, DocumentData}, filesystem::{read_file, FileReadError, FileWriteError, write_file, get_document_path}};
+use crate::{
+    domain::documents::{Document, DocumentData},
+    filesystem::{get_document_path, read_file, write_file, FileReadError, FileWriteError},
+};
 
 pub enum DocumentInsertError {
     Unknown,
@@ -21,7 +24,11 @@ pub enum DocumentGetError {
 #[async_trait]
 pub trait DocumentRepository {
     async fn get(&self, project_id: i32) -> Result<Vec<Document>, DocumentGetError>;
-    async fn get_meta(&self, project_id: i32, document_id: i32) -> Result<Document, DocumentGetError>;
+    async fn get_meta(
+        &self,
+        project_id: i32,
+        document_id: i32,
+    ) -> Result<Document, DocumentGetError>;
     async fn insert(&self, project_id: i32, data: &DocumentData)
         -> Result<(), DocumentInsertError>;
     async fn update(
@@ -30,7 +37,11 @@ pub trait DocumentRepository {
         data: &DocumentData,
     ) -> Result<(), DocumentUpdateError>;
     async fn read_file(&self, document: &Document) -> Result<String, DocumentGetError>;
-    async fn write_file(&self, document: &Document, content: &str) -> Result<(), DocumentUpdateError>;
+    async fn write_file(
+        &self,
+        document: &Document,
+        content: &str,
+    ) -> Result<(), DocumentUpdateError>;
 }
 
 #[derive(Debug, Clone)]
@@ -68,13 +79,17 @@ impl DocumentRepository for PgDocumentRepository {
         }
     }
 
-    async fn get_meta(&self, project_id: i32, document_id: i32) -> Result<Document, DocumentGetError> {
+    async fn get_meta(
+        &self,
+        project_id: i32,
+        document_id: i32,
+    ) -> Result<Document, DocumentGetError> {
         let get_document_sql = "
             SELECT document_id, project_id, name
             FROM documents
             WHERE project_id = $1 AND document_id = $2
         ";
-        
+
         let result = sqlx::query_as::<_, Document>(get_document_sql)
             .bind(project_id)
             .bind(document_id)
@@ -134,7 +149,7 @@ impl DocumentRepository for PgDocumentRepository {
             VALUES ($1, $2)
             RETURNING document_id, project_id, name
         ";
-        
+
         let result = sqlx::query_as::<_, Document>(insert_document_sql)
             .bind(project_id)
             .bind(&document_data.name)
@@ -148,7 +163,10 @@ impl DocumentRepository for PgDocumentRepository {
             }
         };
 
-        if write_file(get_document_path(&document), "", true).await.is_err() {
+        if write_file(get_document_path(&document), "", true)
+            .await
+            .is_err()
+        {
             return Err(DocumentInsertError::Unknown);
         }
 
@@ -161,17 +179,25 @@ impl DocumentRepository for PgDocumentRepository {
     #[tracing::instrument(skip(self))]
     async fn read_file(&self, document: &Document) -> Result<String, DocumentGetError> {
         // We don't check any access privileges for now
-        read_file(get_document_path(document)).await.map_err(|err| match err {
-            FileReadError::Missing => DocumentGetError::Missing,
-            FileReadError::Unknown => DocumentGetError::Unknown
-        })
+        read_file(get_document_path(document))
+            .await
+            .map_err(|err| match err {
+                FileReadError::Missing => DocumentGetError::Missing,
+                FileReadError::Unknown => DocumentGetError::Unknown,
+            })
     }
 
-    async fn write_file(&self, document: &Document, content: &str) -> Result<(), DocumentUpdateError> {
+    async fn write_file(
+        &self,
+        document: &Document,
+        content: &str,
+    ) -> Result<(), DocumentUpdateError> {
         // We don't check any access privileges for now
-        write_file(get_document_path(document), content, false).await.map_err(|err| match err {
-            FileWriteError::Missing => DocumentUpdateError::Missing,
-            FileWriteError::Unknown => DocumentUpdateError::Unknown
-        })
+        write_file(get_document_path(document), content, false)
+            .await
+            .map_err(|err| match err {
+                FileWriteError::Missing => DocumentUpdateError::Missing,
+                FileWriteError::Unknown => DocumentUpdateError::Unknown,
+            })
     }
 }

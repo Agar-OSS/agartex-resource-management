@@ -4,13 +4,17 @@ use sqlx::PgPool;
 use tokio::fs;
 use tracing::{error, info, warn};
 
-use crate::{domain::{
-    crud::CrudInt,
-    projects::{Project, ProjectMetadata}, documents::Document,
-}, filesystem::{write_file, get_document_path, get_project_path}};
+use crate::{
+    domain::{
+        crud::CrudInt,
+        documents::Document,
+        projects::{Project, ProjectMetadata},
+    },
+    filesystem::{get_document_path, get_project_path, write_file},
+};
 
 pub enum ProjectInsertError {
-    Unknown
+    Unknown,
 }
 pub enum ProjectUpdateError {
     Unknown,
@@ -25,7 +29,11 @@ pub enum ProjectGetError {
 pub trait ProjectRepository {
     async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError>;
     async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError>;
-    async fn insert(&self, data: &ProjectMetadata, owner: i32) -> Result<Project, ProjectInsertError>;
+    async fn insert(
+        &self,
+        data: &ProjectMetadata,
+        owner: i32,
+    ) -> Result<Project, ProjectInsertError>;
     async fn update(&self, id: i32, data: &ProjectMetadata) -> Result<(), ProjectUpdateError>;
 }
 
@@ -72,7 +80,7 @@ impl ProjectRepository for PgProjectRepository {
             FROM projects
             WHERE project_id = $1
         ";
-        
+
         let project = sqlx::query_as::<_, Project>(sql)
             .bind(project_id)
             .fetch_optional(&self.pool)
@@ -80,10 +88,10 @@ impl ProjectRepository for PgProjectRepository {
 
         match project {
             Ok(Some(project)) => Ok(project),
-            Ok(None) =>{
+            Ok(None) => {
                 warn!("Missing project");
                 Err(ProjectGetError::Missing)
-            },
+            }
             Err(err) => {
                 error!(%err);
                 Err(ProjectGetError::Unknown)
@@ -138,8 +146,8 @@ impl ProjectRepository for PgProjectRepository {
             VALUES ('main.tex')
             RETURNING document_id as id
         ";
-        let insert_document_result = sqlx::query_as::<_, CrudInt>(insert_document_sql)
-            .fetch_one(&mut tx);
+        let insert_document_result =
+            sqlx::query_as::<_, CrudInt>(insert_document_sql).fetch_one(&mut tx);
 
         let document_id = match insert_document_result.await {
             Ok(document_id) => document_id.id,
@@ -161,7 +169,7 @@ impl ProjectRepository for PgProjectRepository {
             .bind(owner)
             .bind(&project_data.name)
             .fetch_one(&mut tx);
-        
+
         let project = match insert_project_result.await {
             Ok(project) => project,
             Err(err) => {
@@ -184,19 +192,22 @@ impl ProjectRepository for PgProjectRepository {
             .bind(project.project_id)
             .bind(document_id)
             .execute(&mut tx);
-        
+
         if let Err(err) = update_document_result.await {
             error!(%err);
-            return Err(ProjectInsertError::Unknown);       
+            return Err(ProjectInsertError::Unknown);
         }
 
         let document = Document {
             document_id,
             project_id: project.project_id,
-            name: String::from("main.tex")
-        }; 
+            name: String::from("main.tex"),
+        };
 
-        if write_file(get_document_path(&document), "", true).await.is_err() {
+        if write_file(get_document_path(&document), "", true)
+            .await
+            .is_err()
+        {
             return Err(ProjectInsertError::Unknown);
         }
 

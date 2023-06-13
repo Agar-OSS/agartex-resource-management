@@ -1,6 +1,9 @@
-use axum::{Router, routing, Extension};
+use axum::{routing, Extension, Router};
 
-use crate::{repository::users::PgUserRepository, control::users::{get_users, post_users}};
+use crate::{
+    control::users::{get_users, post_users},
+    repository::users::PgUserRepository,
+};
 
 pub fn users_router(users_repository: PgUserRepository) -> Router {
     Router::new()
