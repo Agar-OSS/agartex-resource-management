@@ -344,6 +344,8 @@ paths:
           description: Malformed Request
         404:
           description: Project or resource not found
+        413:
+          description: Uploaded file size larger than allowed
         422:
           description: Missing paramaters
 
