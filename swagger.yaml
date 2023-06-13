@@ -134,7 +134,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Projects"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
         400:
           description: Malformed request
         404:
@@ -150,11 +152,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProjectData"
+              $ref: "#/components/schemas/ProjectMetadata"
       description: Creates a new project
       responses:
         201:
           description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
         400:
           description: Malformed Request 
         415:
@@ -289,7 +295,7 @@ paths:
               $ref: "#/components/schemas/ResourceMetadata"
       description: Creates a new resource with given name for the given project
       responses:
-        200:
+        201:
           description: Resource created successfully
           content:
             application/json:
@@ -384,10 +390,6 @@ components:
         password_hash:
           type: string
           example: idk_even
-    Projects:
-      type: array
-      items:
-         $ref: "#/components/schemas/Project"
     Project:
       type: object
       properties:
@@ -400,16 +402,6 @@ components:
           format: int64
           example: 1 
         owner:
-          type: integer
-          format: int64
-          example: 1
-        name:
-          type: string
-          example: sample_project
-    ProjectData:
-      type: object
-      properties:
-        main_document_id: 
           type: integer
           format: int64
           example: 1

@@ -3,7 +3,7 @@ use mockall::automock;
 use sqlx::PgPool;
 use tracing::error;
 
-use crate::{domain::{documents::{Document, DocumentData}, crud::CrudInt}, filesystem::{read_file, FileReadError, FileWriteError, write_file, get_document_path}};
+use crate::{domain::documents::{Document, DocumentData}, filesystem::{read_file, FileReadError, FileWriteError, write_file, get_document_path}};
 
 pub enum DocumentInsertError {
     Unknown,
@@ -21,6 +21,7 @@ pub enum DocumentGetError {
 #[async_trait]
 pub trait DocumentRepository {
     async fn get(&self, project_id: i32) -> Result<Vec<Document>, DocumentGetError>;
+    async fn get_meta(&self, project_id: i32, document_id: i32) -> Result<Document, DocumentGetError>;
     async fn insert(&self, project_id: i32, data: &DocumentData)
         -> Result<(), DocumentInsertError>;
     async fn update(
@@ -28,8 +29,8 @@ pub trait DocumentRepository {
         document_id: i32,
         data: &DocumentData,
     ) -> Result<(), DocumentUpdateError>;
-    async fn read_file(&self, project_id: i32) -> Result<String, DocumentGetError>;
-    async fn write_file(&self, project_id: i32, content: &str) -> Result<(), DocumentUpdateError>;
+    async fn read_file(&self, document: &Document) -> Result<String, DocumentGetError>;
+    async fn write_file(&self, document: &Document, content: &str) -> Result<(), DocumentUpdateError>;
 }
 
 #[derive(Debug, Clone)]
@@ -60,6 +61,29 @@ impl DocumentRepository for PgDocumentRepository {
         match documents {
             Ok(documents) if !documents.is_empty() => Ok(documents),
             Ok(_documents) => Err(DocumentGetError::Missing),
+            Err(err) => {
+                error!(%err);
+                return Err(DocumentGetError::Unknown);
+            }
+        }
+    }
+
+    async fn get_meta(&self, project_id: i32, document_id: i32) -> Result<Document, DocumentGetError> {
+        let get_document_sql = "
+            SELECT document_id, project_id, name
+            FROM documents
+            WHERE project_id = $1 AND document_id = $2
+        ";
+        
+        let result = sqlx::query_as::<_, Document>(get_document_sql)
+            .bind(project_id)
+            .bind(document_id)
+            .fetch_optional(&self.pool)
+            .await;
+
+        match result {
+            Ok(Some(document)) => Ok(document),
+            Ok(None) => Err(DocumentGetError::Missing),
             Err(err) => {
                 error!(%err);
                 return Err(DocumentGetError::Unknown);
@@ -108,23 +132,23 @@ impl DocumentRepository for PgDocumentRepository {
         let insert_document_sql = "
             INSERT_INTO documents (project_id, name)
             VALUES ($1, $2)
-            RETURNING document_id
+            RETURNING document_id, project_id, name
         ";
         
-        let result = sqlx::query_as::<_, CrudInt>(insert_document_sql)
+        let result = sqlx::query_as::<_, Document>(insert_document_sql)
             .bind(project_id)
             .bind(&document_data.name)
             .fetch_one(&mut tx);
 
-        let document_id = match result.await {
-            Ok(document_id) => document_id,
+        let document = match result.await {
+            Ok(document) => document,
             Err(err) => {
                 error!(%err);
                 return Err(DocumentInsertError::Unknown);
             }
         };
 
-        if write_file(get_document_path(document_id.id), "", true).await.is_err() {
+        if write_file(get_document_path(&document), "", true).await.is_err() {
             return Err(DocumentInsertError::Unknown);
         }
 
@@ -135,17 +159,17 @@ impl DocumentRepository for PgDocumentRepository {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn read_file(&self, document_id: i32) -> Result<String, DocumentGetError> {
+    async fn read_file(&self, document: &Document) -> Result<String, DocumentGetError> {
         // We don't check any access privileges for now
-        read_file(get_document_path(document_id)).await.map_err(|err| match err {
+        read_file(get_document_path(document)).await.map_err(|err| match err {
             FileReadError::Missing => DocumentGetError::Missing,
             FileReadError::Unknown => DocumentGetError::Unknown
         })
     }
 
-    async fn write_file(&self, document_id: i32, content: &str) -> Result<(), DocumentUpdateError> {
+    async fn write_file(&self, document: &Document, content: &str) -> Result<(), DocumentUpdateError> {
         // We don't check any access privileges for now
-        write_file(get_document_path(document_id), content, false).await.map_err(|err| match err {
+        write_file(get_document_path(document), content, false).await.map_err(|err| match err {
             FileWriteError::Missing => DocumentUpdateError::Missing,
             FileWriteError::Unknown => DocumentUpdateError::Unknown
         })

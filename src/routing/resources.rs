@@ -1,25 +1,16 @@
-use axum::{routing, Extension, Router};
+use axum::{Router, routing::{put, post}, Extension, extract::DefaultBodyLimit};
 
-use crate::{
-    control::resources::{
-        get_resources, post_resources, post_resources_content, put_resources_metadata,
-    },
-    repository::resources::PgResourceRepository,
-};
+use crate::{repository::{resources::PgResourceRepository, projects::PgProjectRepository}, control::resources::{get_projects_resources, post_projects_resources, put_projects_resources}, constants::RESOURCE_SIZE_LIMIT_IN_BYTES};
 
-pub fn resources_router(documents_repository: PgResourceRepository) -> Router {
-    let root_handler = routing::get(get_resources::<PgResourceRepository>)
-        .post(post_resources::<PgResourceRepository>);
+pub fn resources_router(resources_repository: PgResourceRepository) -> Router {
+    let root_handler = post(post_projects_resources::<PgProjectRepository, PgResourceRepository>)
+        .get(get_projects_resources::<PgResourceRepository>);
+    
+    let resource_id_handler = put(put_projects_resources::<PgResourceRepository>)
+        .layer(DefaultBodyLimit::max(*RESOURCE_SIZE_LIMIT_IN_BYTES));
 
     Router::new()
         .route("/", root_handler)
-        .route(
-            "/:document_id",
-            routing::post(post_resources_content::<PgResourceRepository>),
-        )
-        .route(
-            "/:document_id/metadata",
-            routing::put(put_resources_metadata::<PgResourceRepository>),
-        )
-        .layer(Extension(documents_repository))
+        .route("/:resource_id", resource_id_handler)
+        .layer(Extension(resources_repository))
 }

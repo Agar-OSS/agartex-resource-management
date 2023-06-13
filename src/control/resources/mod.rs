@@ -1,25 +1,23 @@
 use axum::{
     extract::Path,
-    Extension, Json, TypedHeader,
+    Extension, Json, body::Bytes,
 };
 use http::{StatusCode};
 use tracing::info;
 
 use crate::{
-    domain::resources::{Resource, ResourceData},
-    extractors::headers::XUserId,
-    repository::resources::{
-        ResourceGetError, ResourceInsertError, ResourceRepository, ResourceUpdateError,
-    },
+    domain::resources::{Resource, ResourceMetadata},
+    repository::{resources::{
+        ResourceGetError, ResourceInsertError, ResourceRepository, ResourceUpdateError
+    }, projects::{ProjectRepository, ProjectGetError}}, validation::ValidatedJson,
 };
 
-#[tracing::instrument(skip_all)]
-pub async fn get_resources<T: ResourceRepository + Clone + Send + Sync>(
+#[tracing::instrument(skip(repository))]
+pub async fn get_projects_resources<T: ResourceRepository>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
 ) -> Result<Json<Vec<Resource>>, StatusCode> {
-    info!("Received attempt to get a resource");
+    info!("Received attempt to get project resources");
 
     match repository.get(project_id).await {
         Ok(resources) => Ok(Json(resources)),
@@ -28,43 +26,40 @@ pub async fn get_resources<T: ResourceRepository + Clone + Send + Sync>(
     }
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn post_resources<T: ResourceRepository + Clone + Send + Sync>(
-    Extension(repository): Extension<T>,
+#[tracing::instrument(skip(project_repository, resource_repository))]
+pub async fn post_projects_resources<P: ProjectRepository, R: ResourceRepository>(
+    Extension(project_repository): Extension<P>,
+    Extension(resource_repository): Extension<R>,
     Path(project_id): Path<i32>,
-    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
-    Json(data): Json<ResourceData>,
-) -> StatusCode {
+    ValidatedJson(data): ValidatedJson<ResourceMetadata>
+) -> Result<(StatusCode, Json<Resource>), StatusCode> {
     info!("Received resource creation attempt");
-    match repository.insert(project_id, &data).await {
-        Ok(()) => StatusCode::CREATED,
-        Err(ResourceInsertError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
+
+    match project_repository.get_meta(project_id).await {
+        Err(ProjectGetError::Missing) => return Err(StatusCode::NOT_FOUND),
+        Err(ProjectGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Ok(_) => ()
+    }
+
+    match resource_repository.insert(project_id, &data).await {
+        Ok(resource) => Ok((StatusCode::CREATED, Json(resource))),
+        Err(ResourceInsertError::Duplicate) => Err(StatusCode::CONFLICT),
+        Err(ResourceInsertError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn put_resources_metadata<T: ResourceRepository + Clone + Send + Sync>(
+#[tracing::instrument(skip(repository))]
+pub async fn put_projects_resources<T: ResourceRepository>(
     Extension(repository): Extension<T>,
-    Path(project_id): Path<i32>,
-    Path(resource_id): Path<i32>,
-    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
-    Json(data): Json<ResourceData>,
+    Path((project_id, resource_id)): Path<(i32, i32)>,
+    body: Bytes
 ) -> StatusCode {
-    info!("Received resource update attempt");
+    info!("Received resource content update attempt");
+    // TODO: some mime type checking
 
-    match repository.update(project_id, resource_id, &data).await {
-        Ok(()) => StatusCode::CREATED,
+    match repository.update(project_id, resource_id, body.as_ref()).await {
+        Ok(_) => StatusCode::NO_CONTENT,
+        Err(ResourceUpdateError::Missing) => StatusCode::NOT_FOUND,
         Err(ResourceUpdateError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
     }
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn post_resources_content<T: ResourceRepository + Clone + Send + Sync>(
-    Extension(_repository): Extension<T>,
-    Path(_project_id): Path<i32>,
-    Path(_resource_id): Path<i32>,
-    TypedHeader(_user_id): TypedHeader<XUserId>,
-) -> StatusCode {
-    info!("Received resource content upload");
-    StatusCode::NOT_IMPLEMENTED
 }

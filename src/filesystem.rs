@@ -3,15 +3,15 @@ use std::path::PathBuf;
 use tokio::fs;
 use tracing::{error, warn};
 
-use crate::constants::FILE_DIR_PATH;
+use crate::{constants::FILE_DIR_PATH, domain::{resources::Resource, documents::Document}};
 
 pub enum FileWriteError {
     Missing,
     Unknown
 }
 
-#[tracing::instrument]
-pub async fn write_file(path: PathBuf, content: &str, create_if_not_exists: bool) -> Result<(), FileWriteError> {
+#[tracing::instrument(skip(content))]
+pub async fn write_file(path: PathBuf, content: impl AsRef<[u8]>, create_if_not_exists: bool) -> Result<(), FileWriteError> {
     if !path.exists() && !create_if_not_exists {
         warn!("Missing file");
         return Err(FileWriteError::Missing);
@@ -41,8 +41,23 @@ pub async fn read_file(path: PathBuf) -> Result<String, FileReadError> {
     })
 }
 
-pub fn get_document_path(document_id: i32) -> PathBuf {
+#[tracing::instrument]
+pub fn get_document_path(document: &Document) -> PathBuf {
     let mut file_path = FILE_DIR_PATH.clone();
-    file_path.push(document_id.to_string());
+    file_path.extend([&document.project_id.to_string(), &document.name]);
     file_path
+}
+
+#[tracing::instrument]
+pub fn get_resource_path(resource: &Resource) -> PathBuf {
+    let mut file_path = FILE_DIR_PATH.clone();
+    file_path.extend([&resource.project_id.to_string(), &resource.name]);
+    file_path
+}
+
+#[tracing::instrument]
+pub fn get_project_path(project_id: i32) -> PathBuf {
+    let mut dir_path = FILE_DIR_PATH.clone();
+    dir_path.push(project_id.to_string());
+    dir_path
 }
