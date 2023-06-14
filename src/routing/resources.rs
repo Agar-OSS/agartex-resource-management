@@ -1,8 +1,4 @@
-use axum::{
-    extract::DefaultBodyLimit,
-    routing::{post, put},
-    Extension, Router,
-};
+use axum::{extract::DefaultBodyLimit, routing, Extension, Router};
 
 use crate::{
     constants::RESOURCE_SIZE_LIMIT_IN_BYTES,
@@ -11,10 +7,11 @@ use crate::{
 };
 
 pub fn resources_router(resources_repository: PgResourceRepository) -> Router {
-    let root_handler = post(post_projects_resources::<PgProjectRepository, PgResourceRepository>)
-        .get(get_projects_resources::<PgResourceRepository>);
+    let root_handler =
+        routing::post(post_projects_resources::<PgProjectRepository, PgResourceRepository>)
+            .get(get_projects_resources::<PgResourceRepository>);
 
-    let resource_id_handler = put(put_projects_resources::<PgResourceRepository>)
+    let resource_id_handler = routing::put(put_projects_resources::<PgResourceRepository>)
         .layer(DefaultBodyLimit::max(*RESOURCE_SIZE_LIMIT_IN_BYTES));
 
     Router::new()

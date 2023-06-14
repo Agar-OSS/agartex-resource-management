@@ -178,7 +178,6 @@ impl DocumentRepository for PgDocumentRepository {
 
     #[tracing::instrument(skip(self))]
     async fn read_file(&self, document: &Document) -> Result<String, DocumentGetError> {
-        // We don't check any access privileges for now
         read_file(get_document_path(document))
             .await
             .map_err(|err| match err {
@@ -192,7 +191,6 @@ impl DocumentRepository for PgDocumentRepository {
         document: &Document,
         content: &str,
     ) -> Result<(), DocumentUpdateError> {
-        // We don't check any access privileges for now
         write_file(get_document_path(document), content, false)
             .await
             .map_err(|err| match err {
