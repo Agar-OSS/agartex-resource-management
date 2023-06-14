@@ -9,7 +9,7 @@ use crate::{
 pub fn resources_router(resources_repository: PgResourceRepository) -> Router {
     let root_handler =
         routing::post(post_projects_resources::<PgProjectRepository, PgResourceRepository>)
-            .get(get_projects_resources::<PgResourceRepository>);
+            .get(get_projects_resources::<PgProjectRepository, PgResourceRepository>);
 
     let resource_id_handler = routing::put(put_projects_resources::<PgResourceRepository>)
         .layer(DefaultBodyLimit::max(*RESOURCE_SIZE_LIMIT_IN_BYTES));

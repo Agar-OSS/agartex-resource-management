@@ -13,14 +13,21 @@ use crate::{
     validation::ValidatedJson,
 };
 
-#[tracing::instrument(skip(repository))]
-pub async fn get_projects_resources<T: ResourceRepository>(
-    Extension(repository): Extension<T>,
+#[tracing::instrument(skip(project_repository, resource_repository))]
+pub async fn get_projects_resources<P: ProjectRepository, R: ResourceRepository>(
+    Extension(project_repository): Extension<P>,
+    Extension(resource_repository): Extension<R>,
     Path(project_id): Path<i32>,
 ) -> Result<Json<Vec<Resource>>, StatusCode> {
     info!("Received attempt to get project resources");
 
-    match repository.get(project_id).await {
+    match project_repository.get_meta(project_id).await {
+        Err(ProjectGetError::Missing) => return Err(StatusCode::NOT_FOUND),
+        Err(ProjectGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Ok(_) => (),
+    }
+
+    match resource_repository.get(project_id).await {
         Ok(resources) => Ok(Json(resources)),
         Err(ResourceGetError::Missing) => Err(StatusCode::NOT_FOUND),
         Err(ResourceGetError::Unknown) => Err(StatusCode::INTERNAL_SERVER_ERROR),
