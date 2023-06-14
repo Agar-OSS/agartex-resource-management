@@ -2,7 +2,10 @@ use axum::Extension;
 use http::StatusCode;
 use mockall::predicate;
 
-use crate::{domain::users::{UserData, User}, repository::users::MockUserRepository};
+use crate::{
+    domain::users::{User, UserData},
+    repository::users::MockUserRepository,
+};
 
 use super::*;
 
@@ -17,15 +20,15 @@ fn mock_password() -> String {
 fn mock_user_data() -> UserData {
     UserData {
         email: mock_email(),
-        password_hash: mock_password()
+        password_hash: mock_password(),
     }
 }
 
 fn mock_user() -> User {
-    User { 
-        id: 1, 
-        email: mock_email(), 
-        password_hash: mock_password() 
+    User {
+        id: 1,
+        email: mock_email(),
+        password_hash: mock_password(),
     }
 }
 
@@ -39,7 +42,10 @@ async fn post_users_normal() {
         .times(1)
         .returning(|_| Ok(()));
 
-    assert_eq!(StatusCode::CREATED, post_users(Extension(user_repository), Json(mock_user_data())).await)
+    assert_eq!(
+        StatusCode::CREATED,
+        post_users(Extension(user_repository), Json(mock_user_data())).await
+    )
 }
 
 #[tokio::test]
@@ -52,7 +58,10 @@ async fn post_users_duplicate_error() {
         .times(1)
         .returning(|_| Err(UserInsertError::Duplicate));
 
-    assert_eq!(StatusCode::CONFLICT, post_users(Extension(user_repository), Json(mock_user_data())).await)
+    assert_eq!(
+        StatusCode::CONFLICT,
+        post_users(Extension(user_repository), Json(mock_user_data())).await
+    )
 }
 
 #[tokio::test]
@@ -65,7 +74,10 @@ async fn post_users_service_unknown_error() {
         .times(1)
         .returning(|_| Err(UserInsertError::Unknown));
 
-    assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, post_users(Extension(user_repository), Json(mock_user_data())).await)
+    assert_eq!(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        post_users(Extension(user_repository), Json(mock_user_data())).await
+    )
 }
 
 #[tokio::test]

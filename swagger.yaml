@@ -13,6 +13,10 @@ tags:
     description: CRUD operations for sessions
   - name: projects
     description: CRUD operations for projects
+  - name: resources
+    description: CRUD operations for resources
+  - name: documents
+    description: CRUD operations for documents
 paths:
   /users/{userEmail}:
     parameters:
@@ -130,7 +134,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Projects"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
         400:
           description: Malformed request
         404:
@@ -146,11 +152,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProjectData"
+              $ref: "#/components/schemas/ProjectMetadata"
       description: Creates a new project
       responses:
         201:
           description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
         400:
           description: Malformed Request 
         415:
@@ -169,6 +179,7 @@ paths:
     get:
       tags:
         - projects
+        - documents
       summary: Gets file text
       security:
         - user_id: []
@@ -180,11 +191,6 @@ paths:
             text/plain:
               schema: 
                 type: string
-          headers:
-            Content-Disposition:
-              schema:
-                type: string
-                example: inline
         400:
           description: Malformed Request 
         404:
@@ -194,6 +200,7 @@ paths:
     put:
       tags:
         - projects
+        - documents
       summary: Updates file text
       security:
         - user_id: []
@@ -231,7 +238,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProjectMetaData"
+              $ref: "#/components/schemas/ProjectMetadata"
       description: Updates the display name of the project
       responses:
         204:
@@ -242,6 +249,103 @@ paths:
           description: Project not found
         415:
           description: Wrong content type (should be JSON)
+        422:
+          description: Missing paramaters
+  /projects/{projectId}/resources:
+    parameters:
+      - in: path
+        name: projectId
+        schema:
+          type: integer
+        required: true
+    get:
+      tags:
+        - resources
+        - projects
+      summary: Gets metadata of resources in project
+      security:
+        - user_id: []
+      description: Returns a list of metadata of all the resources in the given project
+      responses:
+        200:
+          description: Resource created successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ResourceMetadata"
+        400:
+          description: Malformed Request
+        404:
+          description: Project not found
+        422:
+          description: Missing paramaters
+    post:
+      tags:
+        - resources
+        - projects
+      summary: Creates new resource in project
+      security:
+        - user_id: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResourceMetadata"
+      description: Creates a new resource with given name for the given project
+      responses:
+        201:
+          description: Resource created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        400:
+          description: Malformed Request
+        404:
+          description: Project not found
+        409:
+          description: Duplicate resource
+        415:
+          description: Wrong content type (should be JSON)
+        422:
+          description: Missing paramaters
+  /projects/{projectId}/resources/{resourceId}:
+    parameters:
+      - in: path
+        name: projectId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: resourceId
+        schema:
+          type: integer
+        required: true
+    put:
+      tags:
+        - resources
+        - projects
+      summary: Updates resource content in project
+      security:
+        - user_id: []
+      requestBody:
+        content:
+          image/*:
+            schema:
+              type: string
+              format: binary
+      description: Uploads new content of a given resource in a given project
+      responses:
+        204:
+          description: Resource uploaded successfully
+        400:
+          description: Malformed Request
+        404:
+          description: Project or resource not found
+        413:
+          description: Uploaded file size larger than allowed
         422:
           description: Missing paramaters
 
@@ -288,10 +392,6 @@ components:
         password_hash:
           type: string
           example: idk_even
-    Projects:
-      type: array
-      items:
-         $ref: "#/components/schemas/Project"
     Project:
       type: object
       properties:
@@ -310,22 +410,30 @@ components:
         name:
           type: string
           example: sample_project
-    ProjectData:
+    ProjectMetadata:
       type: object
       properties:
-        main_document_id: 
-          type: integer
-          format: int64
+        name:
+          type: string
+          example: sample_project
+    Resource:
+      type: object
+      properties:
+        resource_id:
+          type: string
+          example: 1
+        project_id:
+          type: string
           example: 1
         name:
           type: string
-          example: sample_project
-    ProjectMetaData:
+          example: sample_resource.png
+    ResourceMetadata:
       type: object
       properties:
         name:
           type: string
-          example: sample_project
+          example: sample_resource.png
 
   securitySchemes:
     user_id:

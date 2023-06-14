@@ -6,12 +6,13 @@ mod constants;
 mod control;
 mod database;
 mod domain;
+mod extractors;
 mod filesystem;
 mod repository;
 mod routing;
-mod extractors;
+mod validation;
 
-use constants::{SERVER_URL, FILE_DIR_PATH};
+use constants::{FILE_DIR_PATH, SERVER_URL};
 
 #[tracing::instrument]
 pub async fn run() -> anyhow::Result<()> {
@@ -23,7 +24,7 @@ pub async fn run() -> anyhow::Result<()> {
         Ok(pool) => pool,
         Err(err) => {
             error!("Could not connect to database:\n{:?}", err);
-            return Err(anyhow::Error::from(err))
+            return Err(anyhow::Error::from(err));
         }
     };
 
