@@ -8,7 +8,7 @@ use crate::{
     domain::{
         crud::CrudInt,
         documents::Document,
-        projects::{Project, ProjectMetadata},
+        projects::{Project, ProjectData},
     },
     filesystem::{get_document_path, get_project_path, write_file},
 };
@@ -31,10 +31,10 @@ pub trait ProjectRepository {
     async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError>;
     async fn insert(
         &self,
-        data: &ProjectMetadata,
+        data: &ProjectData,
         owner: i32,
     ) -> Result<Project, ProjectInsertError>;
-    async fn update(&self, id: i32, data: &ProjectMetadata) -> Result<(), ProjectUpdateError>;
+    async fn update(&self, id: i32, data: &ProjectData) -> Result<(), ProjectUpdateError>;
 }
 
 #[derive(Debug, Clone)]
@@ -103,7 +103,7 @@ impl ProjectRepository for PgProjectRepository {
     async fn update(
         &self,
         id: i32,
-        project_metadata: &ProjectMetadata,
+        project_metadata: &ProjectData,
     ) -> Result<(), ProjectUpdateError> {
         let result = sqlx::query(
             "
@@ -129,13 +129,12 @@ impl ProjectRepository for PgProjectRepository {
     #[tracing::instrument(skip(self))]
     async fn insert(
         &self,
-        project_data: &ProjectMetadata,
+        project_data: &ProjectData,
         owner: i32,
     ) -> Result<Project, ProjectInsertError> {
         let mut tx = match self.pool.begin().await {
             Ok(tx) => tx,
-<<<<<<< HEAD
-            Err(_) => return Err(ProjectInsertError::TransactionFailure),
+            Err(_) => return Err(ProjectInsertError::Unknown),
         };
         info!("transaction aquired");
         let document_id = match sqlx::query_as::<_, CrudInt>(
@@ -150,61 +149,13 @@ impl ProjectRepository for PgProjectRepository {
         .await
         {
             Ok(Some(document_id)) => document_id,
-            Ok(None) => return Err(ProjectInsertError::TransactionFailure),
-            Err(err) => {
-                error!(%err);
-                return Err(ProjectInsertError::TransactionFailure);
-            }
-        };
-        info!("first query done");
-
-
-        let project_id = match sqlx::query_as::<_, CrudInt>(
-            "
-            INSERT INTO projects (main_document_id, owner, name)
-            VALUES ($1, $2, $3)
-            ON CONFLICT DO NOTHING
-            RETURNING project_id as id
-        ",
-        )
-        .bind(document_id.id)
-        .bind(owner)
-        .bind(&project_data.name)
-        .fetch_optional(&mut tx)
-        .await
-        {
-            Ok(Some(project_id)) => project_id,
-            Ok(None) => return Err(ProjectInsertError::TransactionFailure),
-            Err(err) => {
-                error!(%err);
-                return Err(ProjectInsertError::TransactionFailure);
-            }
-        };
-
-        // Error was not handled but Ok was returned
-        let _result_update_documents = sqlx::query(
-            "
-                UPDATE documents
-                SET project_id = $1
-                WHERE document_id = $2
-            ",
-        )
-        .bind(project_id.id)
-        .bind(document_id.id)
-        .execute(&mut tx)
-        .await;
-
-        let result = tx.commit().await;
-        match result {
-            Ok(()) => Ok(()),
-=======
->>>>>>> main
+            Ok(None) => return Err(ProjectInsertError::Unknown),
             Err(err) => {
                 error!(%err);
                 return Err(ProjectInsertError::Unknown);
             }
         };
-        info!("Transaction acquired");
+        info!("first query done");
 
         let insert_document_sql = "
             INSERT INTO documents (name) 

@@ -3,7 +3,7 @@ use http::StatusCode;
 use tracing::info;
 
 use crate::{
-    domain::projects::{Project, ProjectMetadata},
+    domain::projects::{Project, ProjectData},
     extractors::headers::XUserId,
     repository::projects::ProjectUpdateError,
     repository::projects::{ProjectGetError, ProjectInsertError, ProjectRepository},
@@ -27,7 +27,7 @@ pub async fn get_projects<T: ProjectRepository>(
 pub async fn post_projects<T: ProjectRepository>(
     Extension(repository): Extension<T>,
     TypedHeader(XUserId(user_id)): TypedHeader<XUserId>,
-    Json(data): Json<ProjectMetadata>,
+    Json(data): Json<ProjectData>,
 ) -> Result<(StatusCode, Json<Project>), StatusCode> {
     info!("Received project creation attempt");
 
@@ -41,7 +41,7 @@ pub async fn post_projects<T: ProjectRepository>(
 pub async fn put_projects_metadata<T: ProjectRepository>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
-    Json(data): Json<ProjectMetadata>,
+    Json(data): Json<ProjectData>,
 ) -> StatusCode {
     info!("Received project update attempt");
 
