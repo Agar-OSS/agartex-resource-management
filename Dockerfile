@@ -16,10 +16,7 @@ RUN cargo build --release
 FROM debian:10.13-slim
 
 WORKDIR /app
-RUN chmod 777 .
-
-RUN useradd user
-USER user
+VOLUME /app/blobs
 
 COPY --from=builder /app/src/target/release/agartex-resource-management .
 

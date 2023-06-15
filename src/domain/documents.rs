@@ -1,15 +1,14 @@
 use serde::{Deserialize, Serialize};
-use sqlx;
+use sqlx::FromRow;
 
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Serialize)]
+#[derive(FromRow, Debug, Clone, PartialEq, Serialize)]
 pub struct Document {
-    #[sqlx(rename = "document_id")]
-    pub id: i32,
+    pub document_id: i32,
     pub project_id: i32,
     pub name: String,
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Deserialize)]
+#[derive(FromRow, Debug, Clone, PartialEq, Deserialize)]
 pub struct DocumentData {
     pub name: String,
 }

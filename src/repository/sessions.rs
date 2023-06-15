@@ -1,7 +1,7 @@
 use axum::async_trait;
 use mockall::automock;
 use sqlx::PgPool;
-use tracing::{error, info};
+use tracing::error;
 
 use crate::domain::sessions::{Session, SessionData};
 
@@ -72,7 +72,6 @@ impl SessionRepository for PgSessionRepository {
 
     #[tracing::instrument(skip_all)]
     async fn get(&self, id: &str) -> Result<Session, SessionGetError> {
-        info!(id);
         let session = sqlx::query_as::<_, Session>(
             "
             SELECT session_id, users.user_id, expires, email, password_hash

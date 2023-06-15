@@ -7,12 +7,12 @@ use crate::domain::users::{User, UserData};
 
 pub enum UserGetError {
     Missing,
-    Unknown
+    Unknown,
 }
 
 pub enum UserInsertError {
     Duplicate,
-    Unknown
+    Unknown,
 }
 
 #[automock]
@@ -24,9 +24,8 @@ pub trait UserRepository {
 
 #[derive(Debug, Clone)]
 pub struct PgUserRepository {
-    pub pool: PgPool
+    pub pool: PgPool,
 }
-
 
 impl PgUserRepository {
     pub fn new(pool: &PgPool) -> Self {
@@ -58,16 +57,21 @@ impl UserRepository for PgUserRepository {
             "INSERT INTO users (email, password_hash) 
             VALUES ($1, $2)
             ON CONFLICT DO NOTHING
-        ")
-            .bind(&user_data.email)
-            .bind(&user_data.password_hash)
-            .execute(&self.pool)
-            .await;
+        ",
+        )
+        .bind(&user_data.email)
+        .bind(&user_data.password_hash)
+        .execute(&self.pool)
+        .await;
 
         match result {
             Ok(result) => {
-                if result.rows_affected() > 0 { Ok(()) } else { Err(UserInsertError::Duplicate) }
-            },
+                if result.rows_affected() > 0 {
+                    Ok(())
+                } else {
+                    Err(UserInsertError::Duplicate)
+                }
+            }
             Err(err) => {
                 error!(%err);
                 Err(UserInsertError::Unknown)
@@ -75,4 +79,3 @@ impl UserRepository for PgUserRepository {
         }
     }
 }
-
