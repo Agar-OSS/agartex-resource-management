@@ -1,7 +1,7 @@
 CREATE TABLE projects (
     project_id SERIAL PRIMARY KEY,
-    main_document_id INTEGER UNIQUE,
-    owner_id INTEGER REFERENCES users(user_id),
+    owner INTEGER REFERENCES users(user_id),
+    name VARCHAR(128) NOT NULL
     project_name VARCHAR(128) NOT NULL
 );
 
