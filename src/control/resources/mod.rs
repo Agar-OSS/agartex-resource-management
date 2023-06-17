@@ -56,7 +56,7 @@ pub async fn post_projects_resources<P: ProjectRepository, R: ResourceRepository
     }
 }
 
-#[tracing::instrument(skip(repository))]
+#[tracing::instrument(skip(repository, body))]
 pub async fn put_projects_resources<T: ResourceRepository>(
     Extension(repository): Extension<T>,
     Path((project_id, resource_id)): Path<(i32, i32)>,
