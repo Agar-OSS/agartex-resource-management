@@ -400,7 +400,7 @@ components:
           format: int64
           example: 1
         owner_id:
-          type: ineger
+          type: integer
           format: int64
           example: 1
         owner_email:
