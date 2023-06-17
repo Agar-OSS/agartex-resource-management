@@ -399,10 +399,21 @@ components:
           type: integer
           format: int64
           example: 1
+        owner_id:
+          type: ineger
+          format: int64
+          example: 1
+        owner_email:
+          type: string
+          format: email
+          example: john@email.com
         main_document_id:
           type: integer
           format: int64
           example: 1
+        project_name:
+          type: string
+          example: sample_project
         created_at:
           type: string
           format: timestamp
@@ -411,13 +422,6 @@ components:
           type: string
           format: timestamp
           example: 2023-06-17 14:23:48.458950
-        owner_id:
-          type: integer
-          format: int64
-          example: 1
-        project_name:
-          type: string
-          example: sample_project
     ProjectMetadata:
       type: object
       properties:

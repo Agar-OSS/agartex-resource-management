@@ -54,10 +54,10 @@ impl ProjectRepository for PgProjectRepository {
     async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError> {
         let projects = sqlx::query_as::<_, Project>(
             "
-            SELECT p.project_id, p.project_name, p.created_at, p.last_modified, u.email 
+            SELECT p.project_id, p.project_name, p.main_document_id, p.created_at, p.last_modified, p.owner_id, u.email 
             FROM projects as p 
             JOIN users as u
-            ON p.user_id = u.id
+            ON p.owner_id = u.user_id
             WHERE p.owner_id = $1
         ",
         )
@@ -75,6 +75,7 @@ impl ProjectRepository for PgProjectRepository {
         }
     }
 
+    //TODO not used nor correct, that needs to be changed
     #[tracing::instrument(skip(self))]
     async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError> {
         let sql = "
@@ -141,7 +142,7 @@ impl ProjectRepository for PgProjectRepository {
                 return Err(ProjectInsertError::Unknown);
             }
         };
-        info!("Transaction aquired");
+        info!("Transaction acquired");
 
         let insert_document_sql = "
             INSERT INTO documents (name) 
