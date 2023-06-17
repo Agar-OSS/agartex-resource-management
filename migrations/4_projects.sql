@@ -1,0 +1,11 @@
+ALTER TABLE projects 
+ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+ADD COLUMN last_modified TIMESTAMP NOT NULL DEFAULT NOW();
+
+ALTER TABLE projects
+RENAME COLUMN owner
+TO owner_id;
+
+ALTER TABLE projects
+RENAME COLUMN name 
+TO project_name;

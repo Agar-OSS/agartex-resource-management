@@ -32,7 +32,7 @@ pub trait ProjectRepository {
     async fn insert(
         &self,
         data: &ProjectMetadata,
-        owner: i32,
+        owner_id: i32,
     ) -> Result<Project, ProjectInsertError>;
     async fn update(&self, id: i32, data: &ProjectMetadata) -> Result<(), ProjectUpdateError>;
 }
@@ -54,9 +54,11 @@ impl ProjectRepository for PgProjectRepository {
     async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError> {
         let projects = sqlx::query_as::<_, Project>(
             "
-            SELECT project_id, main_document_id, owner, name
-            FROM projects
-            WHERE projects.owner = $1
+            SELECT p.project_id, p.project_name, p.main_document_id, p.created_at, p.last_modified, p.owner_id, u.email 
+            FROM projects as p 
+            JOIN users as u
+            ON p.owner_id = u.user_id
+            WHERE p.owner_id = $1
         ",
         )
         .bind(id)
@@ -73,10 +75,11 @@ impl ProjectRepository for PgProjectRepository {
         }
     }
 
+    //TODO not used nor correct, that needs to be changed
     #[tracing::instrument(skip(self))]
     async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError> {
         let sql = "
-            SELECT project_id, main_document_id, owner, name
+            SELECT project_id, main_document_id, owner_id, project_name
             FROM projects
             WHERE project_id = $1
         ";
@@ -108,7 +111,7 @@ impl ProjectRepository for PgProjectRepository {
         let result = sqlx::query(
             "
             UPDATE projects 
-            SET name = $1
+            SET project_name = $1
             WHERE project_id = $2
         ",
         )
@@ -130,9 +133,9 @@ impl ProjectRepository for PgProjectRepository {
     async fn insert(
         &self,
         project_data: &ProjectMetadata,
-        owner: i32,
+        owner_id: i32,
     ) -> Result<Project, ProjectInsertError> {
-        let mut tx = match self.pool.begin().await {
+        let mut tx: sqlx::Transaction<'_, sqlx::Postgres> = match self.pool.begin().await {
             Ok(tx) => tx,
             Err(err) => {
                 error!(%err);
@@ -160,13 +163,19 @@ impl ProjectRepository for PgProjectRepository {
         info!("Created document {}", document_id);
 
         let insert_project_sql = "
-            INSERT INTO projects (main_document_id, owner, name)
-            VALUES ($1, $2, $3)
-            RETURNING project_id, main_document_id, owner, name
+            WITH inserted AS (
+                INSERT INTO projects (main_document_id, owner_id, project_name)
+                VALUES ($1, $2, $3)
+                RETURNING project_id, main_document_id, owner_id, project_name, created_at, last_modified
+            )
+            SELECT inserted.*, users.email
+            FROM inserted
+            JOIN users
+            ON inserted.owner_id = users.user_id
         ";
         let insert_project_result = sqlx::query_as::<_, Project>(insert_project_sql)
             .bind(document_id)
-            .bind(owner)
+            .bind(owner_id)
             .bind(&project_data.name)
             .fetch_one(&mut tx);
 
