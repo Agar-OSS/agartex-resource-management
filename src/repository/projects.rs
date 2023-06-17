@@ -8,7 +8,7 @@ use crate::{
     domain::{
         crud::CrudInt,
         documents::Document,
-        projects::{Project, ProjectMetaData},
+        projects::{Project, ProjectMetadata},
     },
     filesystem::{get_document_path, get_project_path, write_file},
 };
@@ -31,10 +31,10 @@ pub trait ProjectRepository {
     async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError>;
     async fn insert(
         &self,
-        data: &ProjectMetaData,
+        data: &ProjectMetadata,
         owner_id: i32,
     ) -> Result<Project, ProjectInsertError>;
-    async fn update(&self, id: i32, data: &ProjectMetaData) -> Result<(), ProjectUpdateError>;
+    async fn update(&self, id: i32, data: &ProjectMetadata) -> Result<(), ProjectUpdateError>;
 }
 
 #[derive(Debug, Clone)]
@@ -54,9 +54,11 @@ impl ProjectRepository for PgProjectRepository {
     async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError> {
         let projects = sqlx::query_as::<_, Project>(
             "
-            SELECT project_id, projcet_name, created_at, last_modified, owner_id_id
-            FROM projects
-            WHERE projects.owner_id = $1
+            SELECT p.project_id, p.project_name, p.created_at, p.last_modified, u.email 
+            FROM projects as p 
+            JOIN users as u
+            ON p.user_id = u.id
+            WHERE p.owner_id = $1
         ",
         )
         .bind(id)
@@ -76,7 +78,7 @@ impl ProjectRepository for PgProjectRepository {
     #[tracing::instrument(skip(self))]
     async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError> {
         let sql = "
-            SELECT project_id, main_document_id, owner_id_id, project_name
+            SELECT project_id, main_document_id, owner_id, project_name
             FROM projects
             WHERE project_id = $1
         ";
@@ -103,7 +105,7 @@ impl ProjectRepository for PgProjectRepository {
     async fn update(
         &self,
         id: i32,
-        project_metadata: &ProjectMetaData,
+        project_metadata: &ProjectMetadata,
     ) -> Result<(), ProjectUpdateError> {
         let result = sqlx::query(
             "
@@ -129,7 +131,7 @@ impl ProjectRepository for PgProjectRepository {
     #[tracing::instrument(skip(self))]
     async fn insert(
         &self,
-        project_data: &ProjectMetaData,
+        project_data: &ProjectMetadata,
         owner_id: i32,
     ) -> Result<Project, ProjectInsertError> {
         let mut tx: sqlx::Transaction<'_, sqlx::Postgres> = match self.pool.begin().await {
@@ -160,9 +162,15 @@ impl ProjectRepository for PgProjectRepository {
         info!("Created document {}", document_id);
 
         let insert_project_sql = "
-            INSERT INTO projects (main_document_id, owner_id_id, project_name)
-            VALUES ($1, $2, $3)
-            RETURNING project_id, main_document_id, created_at, last_modified, owner_id_id, project_name
+            WITH inserted AS (
+                INSERT INTO projects (main_document_id, owner_id, project_name)
+                VALUES ($1, $2, $3)
+                RETURNING project_id, main_document_id, owner_id, project_name, created_at, last_modified
+            )
+            SELECT inserted.*, users.email
+            FROM inserted
+            JOIN users
+            ON inserted.owner_id = users.user_id
         ";
         let insert_project_result = sqlx::query_as::<_, Project>(insert_project_sql)
             .bind(document_id)
