@@ -41,5 +41,5 @@ lazy_static! {
         load_env_or_default("FILE_DIR_PATH", PathBuf::from(r"blobs"));
     pub static ref RESOURCE_SIZE_LIMIT_IN_BYTES: usize =
         load_env_or_default("RESOURCE_SIZE_LIMIT", 10 * 1024 * 1024);
-    pub static ref NAME_REGEX: Regex = Regex::from_str(r"^[a-zA-Z0-9._-]*$").unwrap();
+    pub static ref NAME_REGEX: Regex = Regex::from_str(r"^[a-zA-Z0-9._ -]+$").unwrap();
 }
