@@ -8,7 +8,7 @@ use crate::{
     domain::{
         crud::CrudInt,
         documents::Document,
-        projects::{Project, ProjectData, ProjectCoreData},
+        projects::{Project, ProjectMetaData},
     },
     filesystem::{get_document_path, get_project_path, write_file},
 };
@@ -27,14 +27,14 @@ pub enum ProjectGetError {
 #[automock]
 #[async_trait]
 pub trait ProjectRepository {
-    async fn get(&self, id: i32) -> Result<Vec<ProjectCoreData>, ProjectGetError>;
+    async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError>;
     async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError>;
     async fn insert(
         &self,
-        data: &ProjectData,
-        owner: i32,
+        data: &ProjectMetaData,
+        owner_id: i32,
     ) -> Result<Project, ProjectInsertError>;
-    async fn update(&self, id: i32, data: &ProjectData) -> Result<(), ProjectUpdateError>;
+    async fn update(&self, id: i32, data: &ProjectMetaData) -> Result<(), ProjectUpdateError>;
 }
 
 #[derive(Debug, Clone)]
@@ -51,12 +51,12 @@ impl PgProjectRepository {
 #[async_trait]
 impl ProjectRepository for PgProjectRepository {
     #[tracing::instrument(skip(self))]
-    async fn get(&self, id: i32) -> Result<Vec<ProjectCoreData>, ProjectGetError> {
-        let projects = sqlx::query_as::<_, ProjectCoreData>(
+    async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError> {
+        let projects = sqlx::query_as::<_, Project>(
             "
-            SELECT project_id, name, created_at, last_modified, owner
+            SELECT project_id, projcet_name, created_at, last_modified, owner_id_id
             FROM projects
-            WHERE projects.owner = $1
+            WHERE projects.owner_id = $1
         ",
         )
         .bind(id)
@@ -76,7 +76,7 @@ impl ProjectRepository for PgProjectRepository {
     #[tracing::instrument(skip(self))]
     async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError> {
         let sql = "
-            SELECT project_id, main_document_id, owner, name
+            SELECT project_id, main_document_id, owner_id_id, project_name
             FROM projects
             WHERE project_id = $1
         ";
@@ -103,12 +103,12 @@ impl ProjectRepository for PgProjectRepository {
     async fn update(
         &self,
         id: i32,
-        project_metadata: &ProjectData,
+        project_metadata: &ProjectMetaData,
     ) -> Result<(), ProjectUpdateError> {
         let result = sqlx::query(
             "
             UPDATE projects 
-            SET name = $1
+            SET project_name = $1
             WHERE project_id = $2
         ",
         )
@@ -129,14 +129,17 @@ impl ProjectRepository for PgProjectRepository {
     #[tracing::instrument(skip(self))]
     async fn insert(
         &self,
-        project_data: &ProjectData,
-        owner: i32,
+        project_data: &ProjectMetaData,
+        owner_id: i32,
     ) -> Result<Project, ProjectInsertError> {
-        let mut tx = match self.pool.begin().await {
+        let mut tx: sqlx::Transaction<'_, sqlx::Postgres> = match self.pool.begin().await {
             Ok(tx) => tx,
-            Err(_) => return Err(ProjectInsertError::Unknown),
+            Err(err) => {
+                error!(%err);
+                return Err(ProjectInsertError::Unknown);
+            }
         };
-        info!("transaction aquired");
+        info!("Transaction aquired");
 
         let insert_document_sql = "
             INSERT INTO documents (name) 
@@ -157,13 +160,13 @@ impl ProjectRepository for PgProjectRepository {
         info!("Created document {}", document_id);
 
         let insert_project_sql = "
-            INSERT INTO projects (main_document_id, owner, name)
+            INSERT INTO projects (main_document_id, owner_id_id, project_name)
             VALUES ($1, $2, $3)
-            RETURNING project_id, main_document_id, created_at, last_modified, owner, name
+            RETURNING project_id, main_document_id, created_at, last_modified, owner_id_id, project_name
         ";
         let insert_project_result = sqlx::query_as::<_, Project>(insert_project_sql)
             .bind(document_id)
-            .bind(owner)
+            .bind(owner_id)
             .bind(&project_data.name)
             .fetch_one(&mut tx);
 

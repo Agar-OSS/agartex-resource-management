@@ -136,7 +136,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/ProjectCore"
+                  $ref: "#/components/schemas/Project"
         400:
           description: Malformed request
         404:
@@ -395,7 +395,7 @@ components:
     Project:
       type: object
       properties:
-        id:
+        project_id:
           type: integer
           format: int64
           example: 1
@@ -405,35 +405,17 @@ components:
           example: 1
         created_at:
           type: string
+          format: timestamp
           example: 2023-06-17 14:23:48.458950
         last_modified:
           type: string
+          format: timestamp
           example: 2023-06-17 14:23:48.458950
-        owner:
+        owner_id:
           type: integer
           format: int64
           example: 1
-        name:
-          type: string
-          example: sample_project
-    ProjectCore:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          example: 1
-        created_at:
-          type: string
-          example: 2023-06-17 14:23:48.458950
-        last_modified:
-          type: string
-          example: 2023-06-17 14:23:48.458950
-        owner:
-          type: integer
-          format: int64
-          example: 1
-        name:
+        project_name:
           type: string
           example: sample_project
     ProjectMetadata:
