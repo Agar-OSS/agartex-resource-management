@@ -60,27 +60,17 @@ pub async fn put_documents_metadata<T: DocumentRepository>(
     }
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn post_document_content<T: DocumentRepository>(
-    Extension(_repository): Extension<T>,
-    Path(_project_id): Path<i32>,
-    Path(_document_id): Path<i32>,
-    TypedHeader(XUserId(_user_id)): TypedHeader<XUserId>,
-) -> StatusCode {
-    info!("Received document content upload");
-    StatusCode::NOT_IMPLEMENTED
-}
-
 #[tracing::instrument(skip(project_repository, document_repository, content))]
 pub async fn put_projects_documents<P: ProjectRepository, D: DocumentRepository>(
     Extension(project_repository): Extension<P>,
     Extension(document_repository): Extension<D>,
+    TypedHeader(XUserId(user_id)): TypedHeader<XUserId>,
     Path(project_id): Path<i32>,
     content: String,
 ) -> StatusCode {
     info!("Received attempt to update document text");
 
-    let document_id = match project_repository.get_meta(project_id).await {
+    let document_id = match project_repository.get_meta(project_id, user_id).await {
         Ok(project) => project.main_document_id,
         Err(ProjectGetError::Missing) => return StatusCode::NOT_FOUND,
         Err(ProjectGetError::Unknown) => return StatusCode::INTERNAL_SERVER_ERROR,
@@ -104,11 +94,12 @@ pub async fn put_projects_documents<P: ProjectRepository, D: DocumentRepository>
 pub async fn get_projects_documents<P: ProjectRepository, D: DocumentRepository>(
     Extension(project_repository): Extension<P>,
     Extension(document_repository): Extension<D>,
+    TypedHeader(XUserId(user_id)): TypedHeader<XUserId>,
     Path(project_id): Path<i32>,
 ) -> Result<String, StatusCode> {
     info!("Received attempt to get document text");
 
-    let document_id = match project_repository.get_meta(project_id).await {
+    let document_id = match project_repository.get_meta(project_id, user_id).await {
         Ok(project) => project.main_document_id,
         Err(ProjectGetError::Missing) => return Err(StatusCode::NOT_FOUND),
         Err(ProjectGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
