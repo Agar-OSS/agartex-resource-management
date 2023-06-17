@@ -3,7 +3,7 @@ use http::StatusCode;
 use tracing::info;
 
 use crate::{
-    domain::projects::{Project, ProjectData},
+    domain::projects::{Project, ProjectData, ProjectCoreData},
     extractors::headers::XUserId,
     repository::projects::ProjectUpdateError,
     repository::projects::{ProjectGetError, ProjectInsertError, ProjectRepository},
@@ -13,7 +13,7 @@ use crate::{
 pub async fn get_projects<T: ProjectRepository>(
     Extension(repository): Extension<T>,
     TypedHeader(XUserId(user_id)): TypedHeader<XUserId>,
-) -> Result<Json<Vec<Project>>, StatusCode> {
+) -> Result<Json<Vec<ProjectCoreData>>, StatusCode> {
     info!("Received attempt to get a project");
 
     match repository.get(user_id).await {

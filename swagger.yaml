@@ -123,25 +123,25 @@ paths:
   /projects:
     get:
       tags:
-        - projects 
+        - projects
       summary: Get project list
-      description: Returns a list of project for a specific user 
+      description: Returns a list of project for a specific user
       security:
         - user_id: []
       responses:
         200:
-          description: Projects list 
+          description: Projects list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Project"
+                  $ref: "#/components/schemas/ProjectCore"
         400:
           description: Malformed request
         404:
           description: Project not found
-        
+
     post:
       tags:
         - projects
@@ -162,7 +162,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Project"
         400:
-          description: Malformed Request 
+          description: Malformed Request
         415:
           description: Wrong content type (should be JSON)
         422:
@@ -189,10 +189,10 @@ paths:
           description: Project text retrieved successfully
           content:
             text/plain:
-              schema: 
+              schema:
                 type: string
         400:
-          description: Malformed Request 
+          description: Malformed Request
         404:
           description: Project not found
         422:
@@ -207,7 +207,7 @@ paths:
       requestBody:
         content:
           text/plain:
-            schema: 
+            schema:
               type: string
       description: Updates the content of the document associated with the given project
       responses:
@@ -402,7 +402,33 @@ components:
         main_document_id:
           type: integer
           format: int64
-          example: 1 
+          example: 1
+        created_at:
+          type: string
+          example: 2023-06-17 14:23:48.458950
+        last_modified:
+          type: string
+          example: 2023-06-17 14:23:48.458950
+        owner:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: sample_project
+    ProjectCore:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        created_at:
+          type: string
+          example: 2023-06-17 14:23:48.458950
+        last_modified:
+          type: string
+          example: 2023-06-17 14:23:48.458950
         owner:
           type: integer
           format: int64
