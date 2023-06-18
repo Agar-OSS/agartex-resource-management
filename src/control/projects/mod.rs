@@ -1,6 +1,6 @@
 use axum::{extract::Path, Extension, Json, TypedHeader};
 use http::StatusCode;
-use tracing::{info, log::warn, error};
+use tracing::{error, info, warn};
 
 use crate::{
     domain::projects::{Project, ProjectMetadata},
@@ -63,7 +63,7 @@ pub async fn get_projects_metadata<T: ProjectRepository>(
         Err(ProjectGetError::Missing) => {
             warn!("Project not found");
             Err(StatusCode::NOT_FOUND)
-        },
+        }
         Err(ProjectGetError::Unknown) => {
             error!("Unexpected error occurred");
             Err(StatusCode::INTERNAL_SERVER_ERROR)

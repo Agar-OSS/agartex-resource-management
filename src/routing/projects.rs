@@ -43,10 +43,7 @@ pub fn projects_router(
     Router::new()
         .route("/", root_handler)
         .route("/:project_id", documents_router)
-        .route(
-            "/:project_id/metadata", metadata_handler
-        )
-        .merge(sharing_router)
+        .route("/:project_id/metadata", metadata_handler)
         .nest(
             "/:project_id/resources",
             resources_router(resources_repository),
