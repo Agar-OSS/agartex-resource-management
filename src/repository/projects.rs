@@ -58,7 +58,13 @@ impl ProjectRepository for PgProjectRepository {
             FROM projects as p 
             JOIN users as u
             ON p.owner_id = u.user_id
-            WHERE p.owner_id = $1
+            LEFT JOIN (
+                SELECT project_id, friend_id 
+                FROM sharing
+                WHERE friend_id = $1
+            ) as shared
+            ON p.project_id= shared.project_id
+            WHERE p.owner_id = $1 or shared.friend_id = $1 
         ",
         )
         .bind(id)
@@ -67,6 +73,7 @@ impl ProjectRepository for PgProjectRepository {
 
         match projects {
             Ok(projects) if !projects.is_empty() => Ok(projects),
+            Ok(projects) if projects.is_empty() => Ok(Vec::new()),
             Ok(_projects) => Err(ProjectGetError::Missing),
             Err(err) => {
                 error!(%err);
