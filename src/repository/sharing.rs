@@ -4,6 +4,8 @@ use rand::{distributions::Alphanumeric, Rng};
 use sqlx::PgPool;
 use tracing::{error, info, warn};
 
+use crate::domain::crud::CrudInt;
+
 pub enum ProjectSharingCreateError {
     Unknown,
 }
@@ -62,7 +64,7 @@ impl ProjectSharingRepository for PgProjectSharingRepository {
             WHERE projects.owner_id= $1 and projects.project_id = $2 
         ";
         let insert_document_sql = "
-            INSERT INTO sharing (project_id, token) 
+            INSERT INTO tokens (token, project_id) 
             VALUES ($1, $2)
         ";
 
@@ -78,8 +80,8 @@ impl ProjectSharingRepository for PgProjectSharingRepository {
 
         let token = self.generate_random_token(64);
         let insert_document_result = sqlx::query(insert_document_sql)
-            .bind(project_id)
             .bind(&token)
+            .bind(project_id)
             .execute(&mut tx);
 
         if let Err(err) = insert_document_result.await {
@@ -105,15 +107,33 @@ impl ProjectSharingRepository for PgProjectSharingRepository {
         };
         info!("Transaction acquired");
         info!(token);
+
+        let get_project_id_sql = "
+            SELECT project_id as id
+            FROM tokens
+            WHERE token = $1
+        ";
+        let get_project_id = sqlx::query_as::<_, CrudInt>(get_project_id_sql)
+            .bind(&token)
+            .fetch_one(&mut tx);
+
+        info!("token parsing done");
+        let project_id = match get_project_id.await {
+            Ok(project_id) => project_id,
+            Err(err) => {
+                error!(%err);
+                return Err(ProjectSharingUpdateError::Unknown);
+            }
+        };
+
         let update_document_sql = "
-            UPDATE sharing 
-            SET friend_id = $1 
-            WHERE token = $2
+            INSERT INTO sharing (friend_id, project_id)
+            VALUES ($1, $2)
         ";
 
         let insert_document_result = sqlx::query(update_document_sql)
             .bind(user_id)
-            .bind(&token)
+            .bind(project_id.id)
             .execute(&mut tx);
 
         if let Err(err) = insert_document_result.await {
