@@ -1,9 +1,10 @@
-use axum::{body::Bytes, extract::Path, Extension, Json};
+use axum::{body::Bytes, extract::Path, Extension, Json, TypedHeader};
 use http::StatusCode;
 use tracing::info;
 
 use crate::{
     domain::resources::{Resource, ResourceMetadata},
+    extractors::headers::XUserId,
     repository::{
         projects::{ProjectGetError, ProjectRepository},
         resources::{
@@ -17,11 +18,12 @@ use crate::{
 pub async fn get_projects_resources<P: ProjectRepository, R: ResourceRepository>(
     Extension(project_repository): Extension<P>,
     Extension(resource_repository): Extension<R>,
+    TypedHeader(XUserId(user_id)): TypedHeader<XUserId>,
     Path(project_id): Path<i32>,
 ) -> Result<Json<Vec<Resource>>, StatusCode> {
     info!("Received attempt to get project resources");
 
-    match project_repository.get_meta(project_id).await {
+    match project_repository.get_meta(project_id, user_id).await {
         Err(ProjectGetError::Missing) => return Err(StatusCode::NOT_FOUND),
         Err(ProjectGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         Ok(_) => (),
@@ -38,12 +40,13 @@ pub async fn get_projects_resources<P: ProjectRepository, R: ResourceRepository>
 pub async fn post_projects_resources<P: ProjectRepository, R: ResourceRepository>(
     Extension(project_repository): Extension<P>,
     Extension(resource_repository): Extension<R>,
+    TypedHeader(XUserId(user_id)): TypedHeader<XUserId>,
     Path(project_id): Path<i32>,
     ValidatedJson(data): ValidatedJson<ResourceMetadata>,
 ) -> Result<(StatusCode, Json<Resource>), StatusCode> {
     info!("Received resource creation attempt");
 
-    match project_repository.get_meta(project_id).await {
+    match project_repository.get_meta(project_id, user_id).await {
         Err(ProjectGetError::Missing) => return Err(StatusCode::NOT_FOUND),
         Err(ProjectGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         Ok(_) => (),

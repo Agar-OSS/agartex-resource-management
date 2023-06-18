@@ -9,7 +9,8 @@ use sqlx::PgPool;
 
 use crate::repository::{
     documents::PgDocumentRepository, projects::PgProjectRepository,
-    resources::PgResourceRepository, sessions::PgSessionRepository, users::PgUserRepository,
+    resources::PgResourceRepository, sessions::PgSessionRepository,
+    sharing::PgProjectSharingRepository, users::PgUserRepository,
 };
 
 use self::{projects::projects_router, sessions::sessions_router, users::users_router};
@@ -20,6 +21,7 @@ pub fn main_router(pool: &PgPool) -> Router {
     let projects_repository = PgProjectRepository::new(pool);
     let documents_repository = PgDocumentRepository::new(pool);
     let resources_repository = PgResourceRepository::new(pool);
+    let sharing_repository = PgProjectSharingRepository::new(pool);
 
     Router::new()
         .nest("/users", users_router(users_repository))
@@ -30,6 +32,7 @@ pub fn main_router(pool: &PgPool) -> Router {
                 projects_repository,
                 documents_repository,
                 resources_repository,
+                sharing_repository,
             ),
         )
 }

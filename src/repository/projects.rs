@@ -28,7 +28,7 @@ pub enum ProjectGetError {
 #[async_trait]
 pub trait ProjectRepository {
     async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError>;
-    async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError>;
+    async fn get_meta(&self, project_id: i32, user_id: i32) -> Result<Project, ProjectGetError>;
     async fn insert(
         &self,
         data: &ProjectMetadata,
@@ -58,7 +58,13 @@ impl ProjectRepository for PgProjectRepository {
             FROM projects as p 
             JOIN users as u
             ON p.owner_id = u.user_id
-            WHERE p.owner_id = $1
+            LEFT JOIN (
+                SELECT project_id, friend_id 
+                FROM sharing
+                WHERE friend_id = $1
+            ) As shared
+            ON p.project_id= shared.project_id
+            WHERE p.owner_id = $1 OR shared.friend_id = $1 
         ",
         )
         .bind(id)
@@ -67,6 +73,7 @@ impl ProjectRepository for PgProjectRepository {
 
         match projects {
             Ok(projects) if !projects.is_empty() => Ok(projects),
+            Ok(projects) if projects.is_empty() => Ok(Vec::new()),
             Ok(_projects) => Err(ProjectGetError::Missing),
             Err(err) => {
                 error!(%err);
@@ -75,9 +82,8 @@ impl ProjectRepository for PgProjectRepository {
         }
     }
 
-    //TODO not used nor correct, that needs to be changed
     #[tracing::instrument(skip(self))]
-    async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError> {
+    async fn get_meta(&self, project_id: i32, _user_id: i32) -> Result<Project, ProjectGetError> {
         let sql = "
             SELECT p.project_id, p.project_name, p.main_document_id, p.created_at, p.last_modified, p.owner_id, u.email 
             FROM projects as p 
