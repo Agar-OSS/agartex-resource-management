@@ -3,7 +3,7 @@ use axum::{routing, Extension, Router};
 use crate::{
     control::{
         documents::{get_projects_documents, put_projects_documents},
-        projects::{get_projects, post_projects, put_projects_metadata, get_projects_metadata},
+        projects::{get_projects, get_projects_metadata, post_projects, put_projects_metadata},
         sharing::{post_projects_sharing, put_projects_sharing},
     },
     repository::documents::PgDocumentRepository,
@@ -42,6 +42,7 @@ pub fn projects_router(
 
     Router::new()
         .route("/", root_handler)
+        .merge(sharing_router)
         .route("/:project_id", documents_router)
         .route("/:project_id/metadata", metadata_handler)
         .nest(

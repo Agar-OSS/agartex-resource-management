@@ -28,7 +28,7 @@ pub enum ProjectGetError {
 #[async_trait]
 pub trait ProjectRepository {
     async fn get(&self, id: i32) -> Result<Vec<Project>, ProjectGetError>;
-    async fn get_meta(&self, project_id: i32, user_id: i32) -> Result<Project, ProjectGetError>;
+    async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError>;
     async fn insert(
         &self,
         data: &ProjectMetadata,
@@ -83,7 +83,7 @@ impl ProjectRepository for PgProjectRepository {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_meta(&self, project_id: i32, _user_id: i32) -> Result<Project, ProjectGetError> {
+    async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError> {
         let sql = "
             SELECT p.project_id, p.project_name, p.main_document_id, p.created_at, p.last_modified, p.owner_id, u.email 
             FROM projects as p 
