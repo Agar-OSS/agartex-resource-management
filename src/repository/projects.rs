@@ -62,9 +62,9 @@ impl ProjectRepository for PgProjectRepository {
                 SELECT project_id, friend_id 
                 FROM sharing
                 WHERE friend_id = $1
-            ) as shared
+            ) As shared
             ON p.project_id= shared.project_id
-            WHERE p.owner_id = $1 or shared.friend_id = $1 
+            WHERE p.owner_id = $1 OR shared.friend_id = $1 
         ",
         )
         .bind(id)
@@ -82,9 +82,8 @@ impl ProjectRepository for PgProjectRepository {
         }
     }
 
-    //TODO not used nor correct, that needs to be changed
     #[tracing::instrument(skip(self))]
-    async fn get_meta(&self, project_id: i32, user_id: i32) -> Result<Project, ProjectGetError> {
+    async fn get_meta(&self, project_id: i32, _user_id: i32) -> Result<Project, ProjectGetError> {
         let sql = "
             SELECT project_id, main_document_id, owner_id, project_name
             FROM projects

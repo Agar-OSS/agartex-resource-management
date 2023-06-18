@@ -2,10 +2,11 @@ use axum::async_trait;
 use mockall::automock;
 use rand::{distributions::Alphanumeric, Rng};
 use sqlx::PgPool;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 use crate::domain::crud::CrudInt;
 
+//TODO add more error codes
 pub enum ProjectSharingCreateError {
     Unknown,
 }
@@ -61,7 +62,7 @@ impl ProjectSharingRepository for PgProjectSharingRepository {
         let check_if_project_exists = "
             SELECT project_id
             FROM projects
-            WHERE projects.owner_id= $1 and projects.project_id = $2 
+            WHERE projects.owner_id = $1 and projects.project_id = $2 
         ";
         let insert_document_sql = "
             INSERT INTO tokens (token, project_id) 
@@ -78,6 +79,7 @@ impl ProjectSharingRepository for PgProjectSharingRepository {
             return Err(ProjectSharingCreateError::Unknown);
         }
 
+        //TODO clean stuff here
         let token = self.generate_random_token(64);
         let insert_document_result = sqlx::query(insert_document_sql)
             .bind(&token)

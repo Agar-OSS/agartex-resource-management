@@ -1,4 +1,4 @@
-use axum::{extract::Path, Extension, Json, TypedHeader};
+use axum::{extract::Path, Extension, TypedHeader};
 use http::StatusCode;
 use tracing::info;
 
