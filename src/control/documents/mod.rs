@@ -70,7 +70,7 @@ pub async fn put_projects_documents<P: ProjectRepository, D: DocumentRepository>
 ) -> StatusCode {
     info!("Received attempt to update document text");
 
-    let document_id = match project_repository.get_meta(project_id, user_id).await {
+    let document_id = match project_repository.get_meta(project_id).await {
         Ok(project) => project.main_document_id,
         Err(ProjectGetError::Missing) => return StatusCode::NOT_FOUND,
         Err(ProjectGetError::Unknown) => return StatusCode::INTERNAL_SERVER_ERROR,
@@ -99,7 +99,7 @@ pub async fn get_projects_documents<P: ProjectRepository, D: DocumentRepository>
 ) -> Result<String, StatusCode> {
     info!("Received attempt to get document text");
 
-    let document_id = match project_repository.get_meta(project_id, user_id).await {
+    let document_id = match project_repository.get_meta(project_id).await {
         Ok(project) => project.main_document_id,
         Err(ProjectGetError::Missing) => return Err(StatusCode::NOT_FOUND),
         Err(ProjectGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR),

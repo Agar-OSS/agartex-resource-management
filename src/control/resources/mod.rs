@@ -23,7 +23,7 @@ pub async fn get_projects_resources<P: ProjectRepository, R: ResourceRepository>
 ) -> Result<Json<Vec<Resource>>, StatusCode> {
     info!("Received attempt to get project resources");
 
-    match project_repository.get_meta(project_id, user_id).await {
+    match project_repository.get_meta(project_id).await {
         Err(ProjectGetError::Missing) => return Err(StatusCode::NOT_FOUND),
         Err(ProjectGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         Ok(_) => (),
@@ -46,7 +46,7 @@ pub async fn post_projects_resources<P: ProjectRepository, R: ResourceRepository
 ) -> Result<(StatusCode, Json<Resource>), StatusCode> {
     info!("Received resource creation attempt");
 
-    match project_repository.get_meta(project_id, user_id).await {
+    match project_repository.get_meta(project_id).await {
         Err(ProjectGetError::Missing) => return Err(StatusCode::NOT_FOUND),
         Err(ProjectGetError::Unknown) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         Ok(_) => (),
