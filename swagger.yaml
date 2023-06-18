@@ -221,6 +221,64 @@ paths:
           description: Wrong content type (should be plain text)
         422:
           description: Missing parameters
+  /projects/sharing/{token}:
+    parameters:
+     - in: path
+       name: token
+       schema:
+         type: string
+       required: true
+    post:
+      tags:
+        - projects
+        - collaboration
+      summary: Adds user to a collaboration list for a particular project
+      security:
+        - user_id: []
+      description: Adds users to a collaboration list if the token is not expired
+      responses:
+        201:
+          description: Successfully added user to a collaboration list
+        400:
+          description: Malformed Request
+        401:
+          description: Unauthorized
+        404:
+          description: No project found
+        422:
+          description: Missing parameters
+  /projects/{projectId}/sharing:
+    parameters:
+      - in: path
+        name: projectId
+        schema:
+          type: integer
+        required: true
+    put:
+      tags:
+        - projects
+        - collaboration
+      summary: Creates an invite token for project sharing
+      security:
+        - user_id: []
+      description: Creates a valid invite token
+      responses:
+        201:
+          description: Successfully created an invite token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteToken"
+        400:
+          description: Malformed Request
+        401:
+          description: Unauthorized
+        403:
+          description: No access to the resource
+        404:
+          description: No project found
+        422:
+          description: Missing parameters
   /projects/{projectId}/metadata:
     parameters:
       - in: path
@@ -241,7 +299,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Project" 
+                $ref: "#/components/schemas/Project"
         400:
           description: Malformed Request
         404:
@@ -371,6 +429,13 @@ paths:
 
 components:
   schemas:
+    InviteToken:
+        type: object
+        properties:
+          token:
+            type: string
+            format: token
+            example: aBdedeXFgsd
     SessionData:
       type: object
       properties:
