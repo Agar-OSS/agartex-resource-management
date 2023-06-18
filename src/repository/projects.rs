@@ -89,7 +89,7 @@ impl ProjectRepository for PgProjectRepository {
             FROM projects as p 
             JOIN users as u
             ON p.owner_id = u.user_id
-            WHERE project_id = $1
+            WHERE p.project_id = $1
         ";
 
         let project = sqlx::query_as::<_, Project>(sql)

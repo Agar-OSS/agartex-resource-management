@@ -1,6 +1,6 @@
 use axum::{extract::Path, Extension, Json, TypedHeader};
 use http::StatusCode;
-use tracing::info;
+use tracing::{error, info, warn};
 
 use crate::{
     domain::projects::{Project, ProjectMetadata},
@@ -37,7 +37,7 @@ pub async fn post_projects<T: ProjectRepository>(
     }
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(repository))]
 pub async fn put_projects_metadata<T: ProjectRepository>(
     Extension(repository): Extension<T>,
     Path(project_id): Path<i32>,
@@ -48,5 +48,25 @@ pub async fn put_projects_metadata<T: ProjectRepository>(
     match repository.update(project_id, &data).await {
         Ok(()) => StatusCode::NO_CONTENT,
         Err(ProjectUpdateError::Unknown) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+#[tracing::instrument(skip(repository))]
+pub async fn get_projects_metadata<T: ProjectRepository>(
+    Extension(repository): Extension<T>,
+    Path(project_id): Path<i32>,
+) -> Result<Json<Project>, StatusCode> {
+    info!("Received project metadata retrieval attempt");
+
+    match repository.get_meta(project_id).await {
+        Ok(project) => Ok(Json(project)),
+        Err(ProjectGetError::Missing) => {
+            warn!("Project not found");
+            Err(StatusCode::NOT_FOUND)
+        }
+        Err(ProjectGetError::Unknown) => {
+            error!("Unexpected error occurred");
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

@@ -220,7 +220,7 @@ paths:
         415:
           description: Wrong content type (should be plain text)
         422:
-          description: Missing paramaters
+          description: Missing parameters
   /projects/{projectId}/metadata:
     parameters:
       - in: path
@@ -228,6 +228,26 @@ paths:
         schema:
           type: integer
         required: true
+    get:
+      tags:
+        - projects
+      summary: Gets metadata of a project
+      security:
+        - user_id: []
+      description: Gets the metadata of the project with the specified ID
+      responses:
+        200:
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project" 
+        400:
+          description: Malformed Request
+        404:
+          description: Project not found
+        422:
+          description: Missing parameters
     put:
       tags:
         - projects
