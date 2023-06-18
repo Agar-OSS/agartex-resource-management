@@ -79,8 +79,10 @@ impl ProjectRepository for PgProjectRepository {
     #[tracing::instrument(skip(self))]
     async fn get_meta(&self, project_id: i32) -> Result<Project, ProjectGetError> {
         let sql = "
-            SELECT project_id, main_document_id, owner_id, project_name
-            FROM projects
+            SELECT p.project_id, p.project_name, p.main_document_id, p.created_at, p.last_modified, p.owner_id, u.email 
+            FROM projects as p 
+            JOIN users as u
+            ON p.owner_id = u.user_id
             WHERE project_id = $1
         ";
 
