@@ -186,6 +186,7 @@ impl DocumentRepository for PgDocumentRepository {
             })
     }
 
+    #[tracing::instrument(skip(self, content))]
     async fn write_file(
         &self,
         document: &Document,
